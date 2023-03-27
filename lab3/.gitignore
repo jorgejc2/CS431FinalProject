@@ -1,0 +1,11 @@
+# Directories
+.vscode/
+build/
+doc/doxygen/html/
+html/
+install/
+cmake/arduino_cmake_toolchain/
+src/libraries/
+
+# Files
+.DS_Store
