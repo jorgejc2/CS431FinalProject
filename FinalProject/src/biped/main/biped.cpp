@@ -27,20 +27,21 @@
 #include "soc/timer_group_struct.h"
 #include "soc/timer_group_reg.h"
 #include "common/parameter.h"
+#include "BluetoothSerial.h"
 
 /*
  *  Use biped namespace.
  */
-using namespace biped;
+// using namespace biped;
 
 void startCameraServer();
 
 void IRAM_ATTR test() {
-    biped::Serial(LogLevel::info) << "test";
+    biped::Serial(biped::LogLevel::info) << "test";
 }
 
 void IRAM_ATTR button() {
-    biped::Serial(LogLevel::info) << "btn";
+    biped::Serial(biped::LogLevel::info) << "btn";
 }
 
 int add_int_handler(const uint8_t pin, void (*f)(void), gpio_int_type_t type) {
@@ -55,6 +56,14 @@ int add_int_handler(const uint8_t pin, void (*f)(void), gpio_int_type_t type) {
     }
     return 0;
 }
+
+/* Check if Bluetooth configurations are enabled in the SDK */
+/* If not, then you have to recompile the SDK */
+#if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)
+#error Bluetooth is not enabled! Please run `make menuconfig` to and enable it
+#endif
+
+BluetoothSerial SerialBT;
 
 /* definitions */
 #define LONG_TIME 0xffff
@@ -100,7 +109,7 @@ void timer0_isr (void* arg) {
     *(volatile uint32_t *)TIMG_INT_CLR_TIMERS_REG(1) |= TIMG_T0_INT_CLR; // should typically be at end of interrupt but this handler is quick enough
 
     // xSemaphoreGiveFromISR(timer_sem, &xHigherPriorityTaskWoken);
-    vTaskNotifyGiveFromISR(task_handle_real_time_, nullptr);
+    vTaskNotifyGiveFromISR(biped::task_handle_real_time_, nullptr);
     // vTaskNotifyGiveIndexedFromISR( task_handle_real_time_, 0, &xHigherPriorityTaskWoken);
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
@@ -117,7 +126,7 @@ void timer1_isr (void* arg) {
     *(volatile uint32_t *)TIMG_INT_CLR_TIMERS_REG(1) |= TIMG_T1_INT_CLR; // clear the interrupt
 
     // xSemaphoreGiveFromISR(timer_sem, &xHigherPriorityTaskWoken);
-    vTaskNotifyGiveFromISR(task_handle_real_time_, nullptr);
+    vTaskNotifyGiveFromISR(biped::task_handle_real_time_, nullptr);
     // vTaskNotifyGiveIndexedFromISR( task_handle_real_time_, 0, &xHigherPriorityTaskWoken);
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
@@ -133,13 +142,18 @@ void timer1_isr (void* arg) {
 void
 setup()
 {
-    Wire.setPins(ESP32Pin::i2c_sda, ESP32Pin::i2c_scl);
+    Wire.setPins(biped::ESP32Pin::i2c_sda, biped::ESP32Pin::i2c_scl);
     biped::Serial::setLogLevelMax(biped::SerialParameter::log_level_max);
-    serial_number_ = static_cast<unsigned>(EEPROM.read(AddressParameter::eeprom_serial_number));
+    biped::serial_number_ = static_cast<unsigned>(EEPROM.read(biped::AddressParameter::eeprom_serial_number));
     Wire.begin();
-    EEPROM.begin(EEPROMParameter::size);
-    Display::initialize();
-    Serial::initialize();
+    EEPROM.begin(biped::EEPROMParameter::size);
+    biped::Display::initialize();
+    biped::Serial::initialize();
+
+    /* setting up for bluetooth communication */
+    Serial.begin(115200);
+    SerialBT.begin();
+    Serial.println("Bluetooth started! Ready to par... ");
 
     /*
      *  Instantiate all objects.
@@ -150,11 +164,11 @@ setup()
      *  its pointer can be used.
      */
     // TODO LAB 5 YOUR CODE HERE.
-    io_expander_a_ = std::shared_ptr<IOExpander>(new IOExpander(AddressParameter::io_expander_a));
-    io_expander_b_ = std::shared_ptr<IOExpander>(new IOExpander(AddressParameter::io_expander_b));
+    biped::io_expander_a_ = std::shared_ptr<biped::IOExpander>(new biped::IOExpander(biped::AddressParameter::io_expander_a));
+    biped::io_expander_b_ = std::shared_ptr<biped::IOExpander>(new biped::IOExpander(biped::AddressParameter::io_expander_b));
     /* Learn how to properly initialize NeoPixel later if it's needed */
     // neopixel_ = std::make_shared<NeoPixel>( new NeoPixel() );
-    sensor_ = std::shared_ptr<biped::Sensor>(new biped::Sensor());
+    biped::sensor_ = std::shared_ptr<biped::Sensor>(new biped::Sensor());
     // SensorObject = new biped::Sensor::Sensor();
     /*
      *  Set periods of Controller and Sensor.
@@ -182,7 +196,7 @@ setup()
         CREATE TASKS
     */
 //    xTaskCreate (sensor_task, "SENSORTASK", TaskParameter::stack_size, (void *) 1, TaskParameter::priority_max-2, nullptr);
-   xTaskCreate (realTimeTask, "REALTIMETASK", TaskParameter::stack_size, (void *) 1, TaskParameter::priority_max-2, &task_handle_real_time_);
+   xTaskCreate (biped::realTimeTask, "REALTIMETASK", biped::TaskParameter::stack_size, (void *) 1, biped::TaskParameter::priority_max-2, &biped::task_handle_real_time_);
 
     /*
         SETUP TIMERS
@@ -216,13 +230,13 @@ setup()
     *(volatile uint32_t *)TIMG_T0CONFIG_REG(1) |= TIMG_T0_EN;
     *(volatile uint32_t *)TIMG_T1CONFIG_REG(1) |= TIMG_T1_EN;
 
-    if (biped::Serial::getLogLevelWorst() <= LogLevel::error)
+    if (biped::Serial::getLogLevelWorst() <= biped::LogLevel::error)
     {
-        biped::Serial(LogLevel::warn) << "Initialized with error(s).";
+        biped::Serial(biped::LogLevel::warn) << "Initialized with error(s).";
     }
     else
     {
-        biped::Serial(LogLevel::info) << "Initialized.";
+        biped::Serial(biped::LogLevel::info) << "Initialized.";
     }
 }
 
@@ -236,6 +250,14 @@ setup()
 void
 loop()
 {
+
+    /* loop for bluetooth */
+    if (Serial.available()) {
+        SerialBT.write(Serial.read());
+    }
+    if (SerialBT.available()) {
+        Serial.write(SerialBT.read());
+    }
     /*
      *  Perform best-effort tasks.
      */
@@ -249,16 +271,16 @@ loop()
     // Display::display();
 
     /* grabbing attitude data */
-    biped::IMUData bmx160_imu_data = sensor_->getIMUDataMPU6050();
-    biped::TimeOfFlightData tof_data = sensor_->getTimeOfFlightData();
+    biped::IMUData bmx160_imu_data = biped::sensor_->getIMUDataMPU6050();
+    biped::TimeOfFlightData tof_data = biped::sensor_->getTimeOfFlightData();
     /* Attitude Sensing - IMU READINGS*/
-    Display(0) << "yaw: " << bmx160_imu_data.attitude_z;
-    Display(1) << "accel_x: " << bmx160_imu_data.acceleration_x;
-    Display(2) << "accel_y: " << bmx160_imu_data.acceleration_y;
-    Display(3) << "accel_z: " << bmx160_imu_data.acceleration_z;
-    Display(4) << "av_x: " << bmx160_imu_data.angular_velocity_x;
-    Display(5) << "av_y: " << bmx160_imu_data.angular_velocity_y;
-    Display(6) << "av_z: " << bmx160_imu_data.angular_velocity_z;
+    biped::Display(0) << "yaw: " << bmx160_imu_data.attitude_z;
+    biped::Display(1) << "accel_x: " << bmx160_imu_data.acceleration_x;
+    biped::Display(2) << "accel_y: " << bmx160_imu_data.acceleration_y;
+    biped::Display(3) << "accel_z: " << bmx160_imu_data.acceleration_z;
+    biped::Display(4) << "av_x: " << bmx160_imu_data.angular_velocity_x;
+    biped::Display(5) << "av_y: " << bmx160_imu_data.angular_velocity_y;
+    biped::Display(6) << "av_z: " << bmx160_imu_data.angular_velocity_z;
     /* Distance Sensing - TOF READINGS*/
     float tof_left_dist = -1.0;
     float tof_mid_dist = -1.0;
@@ -272,11 +294,11 @@ loop()
     if (tof_data.ranges_right.size() >= 1) {
         tof_right_dist = tof_data.ranges_right[0];
     }
-    Display(7) << "tl " << int(tof_left_dist*1000) << " tm " << int(tof_mid_dist*1000) << " tr " << int(tof_right_dist*1000);
+    biped::Display(7) << "tl " << int(tof_left_dist*1000) << " tm " << int(tof_mid_dist*1000) << " tr " << int(tof_right_dist*1000);
     // Display(0) << "ToF Left: " << tof_left_dist;
     // Display(1) << "ToF Mid: " << tof_mid_dist;
     // Display(2) << "ToF Right: " << tof_right_dist;
-    Display::display();
+    biped::Display::display();
     // biped::Serial(LogLevel::info) << "att_x: " << bmx160_imu_data.attitude_x << " att_y: " << bmx160_imu_data.attitude_y << " att_z: " << bmx160_imu_data.attitude_z
     // << "accel_x: " << bmx160_imu_data.acceleration_x << "accel_y: " << bmx160_imu_data.acceleration_y << "accel_z: " << bmx160_imu_data.acceleration_z 
     // << "av_x: " << bmx160_imu_data.angular_velocity_x << " av_y: " << bmx160_imu_data.angular_velocity_y << " av_z: " << bmx160_imu_data.angular_velocity_z
