@@ -36,6 +36,9 @@ extern unsigned long interval_real_time_task_;
 extern double timer_domain_;
 
 extern unsigned serial_number_;
+
+/* 0 = stationary, 1 = left, 2 = forward, 3 = right, 4 = backward */
+extern int biped_direction_;
 }
 
 #endif

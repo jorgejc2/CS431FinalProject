@@ -27,4 +27,6 @@ unsigned long interval_real_time_task_ = 0;
 double timer_domain_ = 0;
 
 unsigned serial_number_ = 0;
+
+int biped_direction_ = 0;
 }

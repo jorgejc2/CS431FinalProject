@@ -151,9 +151,9 @@ setup()
     biped::Serial::initialize();
 
     /* setting up for bluetooth communication */
-    Serial.begin(115200);
+    // Serial.begin(115200);
     SerialBT.begin();
-    Serial.println("Bluetooth started! Ready to par... ");
+    // Serial.println("Bluetooth started! Ready to par... ");
 
     /*
      *  Instantiate all objects.
@@ -238,6 +238,59 @@ setup()
     {
         biped::Serial(biped::LogLevel::info) << "Initialized.";
     }
+
+    // /* setting up I2C interface for motor control */
+    //   /* The class constructor only accepts 3 bits because whoever created the class already knew the I/O 
+    // ** expander started at address 0x20. Thus they take three bits and 'or' it with 0x20 to access the 
+    // ** correct IO expander. In otherwords, you can either send 0x20/0x27, or simply 0/7.
+    // */
+    // mcp = new MCP23018(0x20);
+
+    // mcp->begin();
+
+    // /* set MIRROR and INTCC. The rest, espeically BANK and SEQOP, should be cleared */
+    // mcp->writeToRegister(IOCON, IOCON_MIRROR | IOCON_INTCC | IOCON_INTPOL);
+
+
+    // // TODO setup IO expnader interrupts
+    // // attachInterrupt(io_expander_a_interrupt, gpio_isr, RISING);
+
+    // // TODO enable motor and set motor speed
+    // /* By default, all the pins are set up as outputs. Want to set up push buttons as inputs. Low is the same as setting as output */
+    // mcp->SetDirections(BIT(IOExpanderAPortAPin::pushbutton_a) | BIT(IOExpanderAPortAPin::pushbutton_b), BIT(IOExpanderAPortBPin::pushbutton_c));
+    // /* set pull up resistor for every pin */
+    // mcp->SetPullups(0xFF, 0xFF);
+    // /* enable the motor */
+    // mcp->SetBPin(IOExpanderAPortBPin::motor_enable, 1);
+
+    // /* interrupt configuration */
+
+
+    // /* Page 21 of documentation: by using the DEFVAL register as the interrupt on change source, and interrupt occures
+    // ** if the pin is the opposite value to its corresponding pin in the DEFVAL register. When the button is not being pressed,
+    // ** its GPIO pin will be high. Thus for the pins where the push buttons are connected, we want their values in DEFVAL to be high
+    // ** so that an interrupt occurs when the input is low (pushbuttons are active-low).
+    // */
+    // mcp->writeToRegister(DEFVALA, bit(IOExpanderAPortAPin::pushbutton_a) | bit(IOExpanderAPortAPin::pushbutton_b));
+    // mcp->writeToRegister(DEFVALB, bit(IOExpanderAPortBPin::pushbutton_c));
+
+    // /* Page 22 of documentation: set interrupt on change source to be from comparing the input pins to the values in the 
+    // ** DEFVAL register, not by their previous state. 
+    // */
+    // // mcp->writeToRegister(INTCONA, bit(IOExpanderAPortAPin::pushbutton_a) | bit(IOExpanderAPortAPin::pushbutton_b));
+    // // mcp->writeToRegister(INTCONB, bit(IOExpanderAPortBPin::pushbutton_c));
+    // attachInterrupt(ESP32Pin::io_expander_a_interrupt, gpio_isr, RISING);
+
+
+    // /* enable interrupt on change from the push buttons */
+    // mcp->writeToRegister(INTENA, bit(IOExpanderAPortAPin::pushbutton_a) | bit(IOExpanderAPortAPin::pushbutton_b));
+    // mcp->writeToRegister(INTENB, bit(IOExpanderAPortBPin::pushbutton_c));
+
+    // /* set up pin to command left and right motors with pwm signals */
+    // pinMode(ESP32Pin::motor_left_pwm, OUTPUT);
+    // analogWrite(ESP32Pin::motor_left_pwm, 200);
+    // pinMode(ESP32Pin::motor_right_pwm, OUTPUT);
+    // analogWrite(ESP32Pin::motor_right_pwm, 200);
 }
 
 /**
@@ -252,12 +305,64 @@ loop()
 {
 
     /* loop for bluetooth */
-    if (Serial.available()) {
-        SerialBT.write(Serial.read());
-    }
+
     if (SerialBT.available()) {
-        Serial.write(SerialBT.read());
+        int incoming = SerialBT.read(); //Read what we receive 
+
+        // separate button ID from button value -> button ID is 10, 20, 30, etc, value is 1 or 0
+        int button = floor(incoming / 10);
+        int value = incoming % 10;
+
+        /* could potentially be simplified to this logic */
+        /* In the case a new direction other than our current one is set to true, change biped to that direction */
+        if ((button != biped::biped_direction_) && (value == 1))
+            biped::biped_direction_ = button;
+        else
+            biped::biped_direction_ = 0;
+        
+        // switch (button) {
+        // /* left button */
+        // case 1:  
+        //     if (value) {
+        //         biped_direction_ = 1;
+        //     }
+        //     else {
+        //         biped_direction_ = 0;
+        //     }
+        //     break;
+        // /* forward button */
+        // case 2:  
+        //     if (value) {
+        //         biped_direction_ = 2;
+        //     }
+        //     else {
+        //         biped_direction_ = 0;
+        //     }
+        // /* right button */
+        // case 3:  
+        //     if (value) {
+        //         biped_direction_ = 3;
+        //     }
+        //     else {
+        //         biped_direction_ = 0;
+        //     }
+        //     break;
+        // /* backward button */
+        // case 4:
+        // if (value) {
+        //         biped_direction_ = 4;
+        //     }
+        //     else {
+        //         biped_direction_ = 0;
+        //     }
+        //     break;
+        // }
+        
     }
+
+    /* Print the biped direction based on the data received via bluetooth */
+    biped::Display(0) << "Biped Direction: " << biped::biped_direction_;
+
     /*
      *  Perform best-effort tasks.
      */
@@ -274,13 +379,13 @@ loop()
     biped::IMUData bmx160_imu_data = biped::sensor_->getIMUDataMPU6050();
     biped::TimeOfFlightData tof_data = biped::sensor_->getTimeOfFlightData();
     /* Attitude Sensing - IMU READINGS*/
-    biped::Display(0) << "yaw: " << bmx160_imu_data.attitude_z;
-    biped::Display(1) << "accel_x: " << bmx160_imu_data.acceleration_x;
-    biped::Display(2) << "accel_y: " << bmx160_imu_data.acceleration_y;
-    biped::Display(3) << "accel_z: " << bmx160_imu_data.acceleration_z;
-    biped::Display(4) << "av_x: " << bmx160_imu_data.angular_velocity_x;
-    biped::Display(5) << "av_y: " << bmx160_imu_data.angular_velocity_y;
-    biped::Display(6) << "av_z: " << bmx160_imu_data.angular_velocity_z;
+    // biped::Display(0) << "yaw: " << bmx160_imu_data.attitude_z;
+    // biped::Display(1) << "accel_x: " << bmx160_imu_data.acceleration_x;
+    // biped::Display(2) << "accel_y: " << bmx160_imu_data.acceleration_y;
+    // biped::Display(3) << "accel_z: " << bmx160_imu_data.acceleration_z;
+    // biped::Display(4) << "av_x: " << bmx160_imu_data.angular_velocity_x;
+    // biped::Display(5) << "av_y: " << bmx160_imu_data.angular_velocity_y;
+    // biped::Display(6) << "av_z: " << bmx160_imu_data.angular_velocity_z;
     /* Distance Sensing - TOF READINGS*/
     float tof_left_dist = -1.0;
     float tof_mid_dist = -1.0;
@@ -294,7 +399,7 @@ loop()
     if (tof_data.ranges_right.size() >= 1) {
         tof_right_dist = tof_data.ranges_right[0];
     }
-    biped::Display(7) << "tl " << int(tof_left_dist*1000) << " tm " << int(tof_mid_dist*1000) << " tr " << int(tof_right_dist*1000);
+    // biped::Display(7) << "tl " << int(tof_left_dist*1000) << " tm " << int(tof_mid_dist*1000) << " tr " << int(tof_right_dist*1000);
     // Display(0) << "ToF Left: " << tof_left_dist;
     // Display(1) << "ToF Mid: " << tof_mid_dist;
     // Display(2) << "ToF Right: " << tof_right_dist;
