@@ -150,9 +150,10 @@ setup()
     biped::Display::initialize();
     biped::Serial::initialize();
 
+
     /* setting up for bluetooth communication */
     // Serial.begin(115200);
-    SerialBT.begin();
+    SerialBT.begin("ESP32_Control_Jorge");
     // Serial.println("Bluetooth started! Ready to par... ");
 
     /*
@@ -291,6 +292,7 @@ setup()
     // analogWrite(ESP32Pin::motor_left_pwm, 200);
     // pinMode(ESP32Pin::motor_right_pwm, OUTPUT);
     // analogWrite(ESP32Pin::motor_right_pwm, 200);
+
 }
 
 /**
