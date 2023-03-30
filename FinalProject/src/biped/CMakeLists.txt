@@ -21,6 +21,8 @@ include_directories(
 	"${ARDUINO_BOARD_RUNTIME_PLATFORM_PATH}/libraries/EEPROM/src"
 	"${ARDUINO_BOARD_RUNTIME_PLATFORM_PATH}/libraries/SPI/src"
 	"${ARDUINO_BOARD_RUNTIME_PLATFORM_PATH}/libraries/Wire/src"
+	"${ARDUINO_BOARD_RUNTIME_PLATFORM_PATH}/libraries/Wifi/src"
+	"${ARDUINO_BOARD_RUNTIME_PLATFORM_PATH}/libraries/WebServer/src"
 	"${ARDUINO_BOARD_RUNTIME_PLATFORM_PATH}/variants/esp32"
 	"${ARDUINO_BOARD_COMPILER_SDK_PATH}/include/config"
 	"${ARDUINO_BOARD_COMPILER_SDK_PATH}/include/driver/include"

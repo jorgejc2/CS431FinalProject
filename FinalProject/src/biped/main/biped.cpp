@@ -28,6 +28,7 @@
 #include "soc/timer_group_reg.h"
 #include "common/parameter.h"
 #include "BluetoothSerial.h"
+#include "sensor/camera.h"
 
 /*
  *  Use biped namespace.
@@ -150,7 +151,7 @@ setup()
     biped::Display::initialize();
     biped::Serial::initialize();
 
-
+    biped::Camera cam = biped::Camera();
     /* setting up for bluetooth communication */
     // Serial.begin(115200);
     SerialBT.begin("ESP32_Control_Jorge");
