@@ -7,20 +7,38 @@
  *  This file implements the serial class.
  */
 
+/*
+ *  External headers.
+ */
 #include <Arduino.h>
 
+/*
+ *  Project headers.
+ */
 #include "platform/serial.h"
 #include "common/parameter.h"
 
+/*
+ *  Biped namespace.
+ */
 namespace biped
 {
 Serial::Serial(const LogLevel& log_level, const bool& raw) : log_level_(log_level), raw_(raw)
 {
+    /*
+     *  Do not initialize if the class member log
+     *  level is greater than the class member maximum
+     *  log level.
+     */
     if (log_level_ > log_level_max_)
     {
         return;
     }
 
+    /*
+     *  Stream log level tags to the class member string
+     *  stream buffer if not in raw mode.
+     */
     if (!raw)
     {
         switch (log_level_)
@@ -66,11 +84,20 @@ Serial::Serial(const LogLevel& log_level, const bool& raw) : log_level_(log_leve
 
 Serial::~Serial()
 {
+    /*
+     *  Do not flush the string stream buffer if
+     *  the class member log level is greater than
+     *  the class member maximum log level.
+     */
     if (log_level_ > log_level_max_)
     {
         return;
     }
 
+    /*
+     *  Flush the string stream buffer to the serial
+     *  connection based on the printing mode.
+     */
     if (raw_)
     {
         ::Serial.print(ss_.str().c_str());
@@ -80,6 +107,9 @@ Serial::~Serial()
         ::Serial.println(ss_.str().c_str());
     }
 
+    /*
+     *  Set worst log level.
+     */
     if (log_level_ < log_level_worst_)
     {
         log_level_worst_ = log_level_;
@@ -89,29 +119,47 @@ Serial::~Serial()
 void
 Serial::initialize()
 {
+    /*
+     *  Initialize serial driver object.
+     */
     ::Serial.begin(SerialParameter::baud_rate);
 }
 
 LogLevel
 Serial::getLogLevelWorst()
 {
+    /*
+     *  Set the current worst log level.
+     */
     return log_level_worst_;
 }
 
 void
 Serial::setLogLevelMax(const LogLevel& log_level_max)
 {
+    /*
+     *  Set the maximum log level.
+     */
     log_level_max_ = log_level_max;
 }
 
 Serial&
 Serial::operator<<(const StreamManipulator& item)
 {
+    /*
+     *  Do not stream the data if the class member
+     *  log level is greater than the class member
+     *  maximum log level.
+     */
     if (log_level_ > log_level_max_)
     {
         return *this;
     }
 
+    /*
+     *  Interpret the given stream manipulator and perform
+     *  their respective functionalities.
+     */
     switch (item)
     {
         case StreamManipulator::carriage_return:
@@ -130,9 +178,15 @@ Serial::operator<<(const StreamManipulator& item)
         }
     }
 
+    /*
+     *  Return a reference to this object.
+     */
     return *this;
 }
 
+/*
+ *  Initialize static class member variables.
+ */
 LogLevel Serial::log_level_max_ = LogLevel::trace;
 LogLevel Serial::log_level_worst_ = LogLevel::trace;
-}
+}   // namespace biped

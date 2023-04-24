@@ -15,7 +15,7 @@
 #define UTILITY_LOW_PASS_FILTER_H_
 
 /*
- *  biped namespace.
+ *  Biped namespace.
  */
 namespace biped
 {
@@ -44,15 +44,15 @@ public:
 
     /**
      *  @param  beta Beta parameter.
-     *  @brief  Set the Beta parameter.
+     *  @brief  Set the beta parameter.
      *
-     *  This function sets the Beta parameter.
+     *  This function sets the beta parameter.
      */
     inline void
     setBeta(const double& beta)
     {
         /*
-         *  Set the Beta parameter.
+         *  Set the beta parameter.
          */
         beta_ = beta;
     }
@@ -61,7 +61,7 @@ public:
      *  @tparam Type Type of filtered data.
      *  @param  data New data.
      *  @return Templated filtered data.
-     *  @brief  Filter the new data using a low-pass filter.
+     *  @brief  Filter data using a low-pass filter.
      *
      *  This function filters the new data
      *  using a simple, discrete low-pass filter.

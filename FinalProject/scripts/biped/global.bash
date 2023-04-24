@@ -4,9 +4,9 @@
 cpu_cores=$(getconf _NPROCESSORS_ONLN)
 eclipse_version="4.25.0"
 cmake_target_macos="/Applications/CMake.app/Contents/bin/cmake"
-cmake_symlink_macos="$HOME/.local/bin/cmake"
+cmake_symlink_macos="/usr/local/bin/cmake"
 doxygen_target_macos="/Applications/Doxygen.app/Contents/Resources/doxygen"
-doxygen_symlink_macos="$HOME/.local/bin/doxygen"
+doxygen_symlink_macos="/usr/local/bin/doxygen"
 
 # Declare project variables
 project_name="biped"
@@ -31,7 +31,7 @@ arduino_cli_file="$arduino_cli_file_linux"
 arduino_cli_url_linux="https://downloads.arduino.cc/arduino-cli/$arduino_cli_file_linux"
 arduino_cli_url_macos="https://downloads.arduino.cc/arduino-cli/$arduino_cli_file_macos"
 arduino_cli_url="$arduino_cli_url_linux"
-arduino_cli_dir_install="$HOME/.local/bin"
+arduino_cli_dir_install="/usr/local/bin"
 
 # Declare Arduino ESP32 Core variables
 arduino_esp32_core_name="esp32:esp32"
@@ -111,6 +111,14 @@ eigen_version_patch=3
 eigen_version="$eigen_version_major.$eigen_version_minor.$eigen_version_patch"
 eigen_author="hideakitai"
 
+# Declare ESP32TimerInterrupt variables
+esp32timerinterrupt_name="ESP32TimerInterrupt"
+esp32timerinterrupt_version_major=2
+esp32timerinterrupt_version_minor=2
+esp32timerinterrupt_version_patch=0
+esp32timerinterrupt_version="$esp32timerinterrupt_version_major.$esp32timerinterrupt_version_minor.$esp32timerinterrupt_version_patch"
+esp32timerinterrupt_author="khoih-prog"
+
 # Declare Kalman Filter Library variables
 kalman_filter_library_name="Kalman_Filter_Library"
 kalman_filter_library_version_major=1
@@ -177,7 +185,7 @@ function create_symlink()
 
 	# Create symlink
 	echo "[INFO]: Creating \"$symlink\"..."
-	ln -s "$target" "$symlink"
+	sudo ln -s "$target" "$symlink"
 	assert_error $? "Failed to create \"$symlink\""
 }
 

@@ -2,61 +2,38 @@
  *  @file   biped.cpp
  *  @author Simon Yu
  *  @date   01/12/2022
+ *  @brief  Biped main program source.
+ *
+ *  This file implements the Biped main program.
  */
 
 /*
  *  External headers.
  */
 #include <EEPROM.h>
+#include <esp_intr_alloc.h>
+#include <ESP32TimerInterrupt.hpp>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
 /*
  *  Project headers.
  */
-// #include "actuator/actuator.h"
-// #include "controller/controller.h"
+#include "actuator/actuator.h"
+#include "platform/camera.h"
+#include "controller/controller.h"
 #include "platform/display.h"
 #include "common/global.h"
 #include "platform/io_expander.h"
 #include "task/interrupt.h"
+#include "planner/maneuver_planner.h"
 #include "common/pin.h"
 #include "sensor/sensor.h"
 #include "platform/serial.h"
 #include "task/task.h"
-#include "soc/timer_group_struct.h"
-#include "soc/timer_group_reg.h"
-#include "common/parameter.h"
+#include "planner/waypoint_planner.h"
+
 #include "BluetoothSerial.h"
-#include "sensor/camera.h"
-
-/*
- *  Use biped namespace.
- */
-// using namespace biped;
-
-void startCameraServer();
-
-void IRAM_ATTR test() {
-    biped::Serial(biped::LogLevel::info) << "test";
-}
-
-void IRAM_ATTR button() {
-    biped::Serial(biped::LogLevel::info) << "btn";
-}
-
-int add_int_handler(const uint8_t pin, void (*f)(void), gpio_int_type_t type) {
-    int ret;
-    ret = gpio_isr_handler_add((gpio_num_t) pin, (void (*)(void*)) f, nullptr);
-    if (ret < 0) {
-        return ret;
-    }
-    ret = gpio_set_intr_type((gpio_num_t) pin, type);
-    if (ret < 0) {
-        return ret;
-    }
-    return 0;
-}
 
 /* Check if Bluetooth configurations are enabled in the SDK */
 /* If not, then you have to recompile the SDK */
@@ -64,248 +41,211 @@ int add_int_handler(const uint8_t pin, void (*f)(void), gpio_int_type_t type) {
 #error Bluetooth is not enabled! Please run `make menuconfig` to and enable it
 #endif
 
+/*
+ *  Use biped namespace.
+ */
+using namespace biped;
+
+/* global variables */
+// ActuationCommand * curr_actutation_command;
+
 BluetoothSerial SerialBT;
-
-/* definitions */
-#define LONG_TIME 0xffff
-#define TICKS_TO_WAIT 10
-
-
-// Sensor::Sensor * SensorObject;
-
-/* task handlers */
-TaskHandle_t xRealTimeTask = NULL;
-
-
-/* OBSOLETE */
-/* semaphores */
-// SemaphoreHandle_t timer_sem;
-// bool fast_domain = false;
-// /* Sensor Task (can be called by either timer)*/
-// /* NOTE: for now, we will use the task specified in task.cpp instead of this one since that seems to be the convention
-//  * they want us to use for this lab. 
-// */
-// void sensor_task(void * pvParameters) {
-//     timer_sem = xSemaphoreCreateBinary();
-
-//     while (1) {
-//         if (xSemaphoreTake(timer_sem, LONG_TIME) == pdTRUE) {
-
-//             /* do sensor stuff */
-//             // SensorObject->sense(fast_domain);
-//             /* end sensor stuff */
-//         }
-        
-//     }
-// }
-
-// High Frequency Timer
-
-void timer0_isr (void* arg) {
-
-    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-    /* clears timer0 interrupt */
-    /* with registers */
-    *(volatile uint32_t *)TIMG_T0CONFIG_REG(1) |= TIMG_T0_ALARM_EN;
-    *(volatile uint32_t *)TIMG_INT_CLR_TIMERS_REG(1) |= TIMG_T0_INT_CLR; // should typically be at end of interrupt but this handler is quick enough
-
-    // xSemaphoreGiveFromISR(timer_sem, &xHigherPriorityTaskWoken);
-    vTaskNotifyGiveFromISR(biped::task_handle_real_time_, nullptr);
-    // vTaskNotifyGiveIndexedFromISR( task_handle_real_time_, 0, &xHigherPriorityTaskWoken);
-    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-}
-
-
-
-// Low Frequency Timer
-
-void timer1_isr (void* arg) {
-    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-    /* clears timer1 interrupt */
-    /* with registers */
-    *(volatile uint32_t *)TIMG_T1CONFIG_REG(1) |= TIMG_T1_ALARM_EN; // re-enable the alarm
-    *(volatile uint32_t *)TIMG_INT_CLR_TIMERS_REG(1) |= TIMG_T1_INT_CLR; // clear the interrupt
-
-    // xSemaphoreGiveFromISR(timer_sem, &xHigherPriorityTaskWoken);
-    vTaskNotifyGiveFromISR(biped::task_handle_real_time_, nullptr);
-    // vTaskNotifyGiveIndexedFromISR( task_handle_real_time_, 0, &xHigherPriorityTaskWoken);
-    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-}
 
 
 /**
- *  @brief  Arduino setup function.
+ *  @brief  Main program setup function.
  *
- *  This function creates, configures, and launches
- *  objects. The function also attaches the interrupt
- *  handlers to the corresponding pins.
+ *  This function creates, configures, and launched drivers, objects,
+ *  and tasks. The function also sets pin modes and attaches interrupt
+ *  handlers to their corresponding pins.
  */
 void
 setup()
 {
-    Wire.setPins(biped::ESP32Pin::i2c_sda, biped::ESP32Pin::i2c_scl);
-    biped::Serial::setLogLevelMax(biped::SerialParameter::log_level_max);
-    biped::serial_number_ = static_cast<unsigned>(EEPROM.read(biped::AddressParameter::eeprom_serial_number));
-    Wire.begin();
-    EEPROM.begin(biped::EEPROMParameter::size);
-    biped::Display::initialize();
-    biped::Serial::initialize();
-
-    biped::Camera cam = biped::Camera();
-    /* setting up for bluetooth communication */
-    // Serial.begin(115200);
-    SerialBT.begin("ESP32_Control_Jorge");
-    // Serial.println("Bluetooth started! Ready to par... ");
 
     /*
-     *  Instantiate all objects.
-     *  See the defined object pointers at the top.
-     *
-     *  Note that the order of instantiation matters!
-     *  An object must be instantiated first before
-     *  its pointer can be used.
+     *  Set pin mode for the I/O expander interrupt pins using
+     *  the Arduino pin mode function. Use pull-up if the pin
+     *  mode is input.
+     *  See the parameter header for details.
      */
-    // TODO LAB 5 YOUR CODE HERE.
-    biped::io_expander_a_ = std::shared_ptr<biped::IOExpander>(new biped::IOExpander(biped::AddressParameter::io_expander_a));
-    biped::io_expander_b_ = std::shared_ptr<biped::IOExpander>(new biped::IOExpander(biped::AddressParameter::io_expander_b));
-    /* Learn how to properly initialize NeoPixel later if it's needed */
-    // neopixel_ = std::make_shared<NeoPixel>( new NeoPixel() );
-    biped::sensor_ = std::shared_ptr<biped::Sensor>(new biped::Sensor());
-    // SensorObject = new biped::Sensor::Sensor();
+    // TODO LAB 6 YOUR CODE HERE.
+    pinMode(ESP32Pin::io_expander_a_interrupt, INPUT_PULLUP);
+    pinMode(ESP32Pin::io_expander_b_interrupt, INPUT_PULLUP);
+
+    Serial::initialize();
+    biped::Serial::setLogLevelMax(biped::SerialParameter::log_level_max);
+
     /*
-     *  Set periods of Controller and Sensor.
-     *  See the corresponding class for details.
+     *  Set I2C driver object (Wire) SDA and SCL pins and set the
+     *  serial object maximum log level.
+     *  See the parameter header for details.
+     */
+    // TODO LAB 6 YOUR CODE HERE.
+    Wire.setPins(ESP32Pin::i2c_sda, ESP32Pin::i2c_scl);
+    Wire.begin();
+
+    /*
+     *  Initialize I2C driver (Wire), EEPROM driver (EEPROM),
+     *  display, and serial objects.
+     *  See the parameter header for details.
+     */
+    // TODO LAB 6 YOUR CODE HERE.
+    EEPROM.begin(EEPROMParameter::size);
+    Display::initialize();
+    
+
+    /*
+     *  Instantiate all objects and store their shared pointers.
+     *
+     *  Note that the order of instantiation matters! The camera
+     *  object has to be instantiated first, then the I/O expanders,
+     *  and then the rest of the objects.
+     *
+     *  See the global and parameter header for details.
+     */
+    // TODO LAB 6 YOUR CODE HERE.
+    camera_ = std::shared_ptr<Camera>(new Camera());
+    // io_expander_a_ = std::shared_ptr<IOExpander>(new IOExpander(AddressParameter::io_expander_a));
+    // io_expander_b_ = std::shared_ptr<IOExpander>(new IOExpander(AddressParameter::io_expander_b));
+    io_expander_a_ = std::make_shared<IOExpander>(AddressParameter::io_expander_a);
+    io_expander_b_ = std::make_shared<IOExpander>(AddressParameter::io_expander_b);
+    actuator_ = std::shared_ptr<Actuator>(new Actuator());
+    controller_ = std::shared_ptr<Controller>(new Controller());
+    /* Learn how to properly initialize NeoPixel later if it's needed */
+    // neopixel_ = std::shared_ptr<NeoPixel>( new NeoPixel() );
+    sensor_ = std::shared_ptr<biped::Sensor>(new biped::Sensor());
+    /* Change depending on desired Planner*/
+    planner_ = std::shared_ptr<WaypointPlanner>(new WaypointPlanner());
+    // planner_ =  std::shared_ptr<ManeuverPlanner>(new ManeuverPlanner());
+    timer_ = std::make_shared<ESP32TimerInterrupt>(0);
+   
+    
+
+    /*
+     *  Read and store the serial number from the EEPROM.
+     *  See the global and parameter header for details.
+     */
+    // TODO LAB 6 YOUR CODE HERE.
+    serial_number_ = static_cast<unsigned>(EEPROM.read(AddressParameter::eeprom_serial_number));
+
+    /*
+     *  Set controller periods.
+     *  See the controller class for details.
      *
      *  Remember to set both the fast and slow domain
-     *  period for each class, if applicable.
+     *  periods, if applicable.
      */
-    // TODO LAB 5 YOUR CODE HERE.
+    // TODO LAB 7 YOUR CODE HERE.
+    controller_->setPeriod(PeriodParameter::fast , true);
+    controller_->setPeriod(PeriodParameter::slow, false);
+    // ControllerReference control_ref;
+    // control_ref.attitude_y = 0.04;
+    // controller_->setControllerReference(control_ref);
+
 
     /*
-     *  Attach the corresponding interrupt handler to the left
-     *  motor encoder pin. Make sure to set the interrupt to CHANGE mode
-     *  for maximum resolution.
+     *  Create I/O expander interrupt tasks using the
+     *  FreeRTOS xTaskCreatePinnedToCore function. Set
+     *  the task descriptive names to be their task
+     *  function names. The tasks have the highest
+     *  priority. Pin both tasks to core 1.
+     *  See the global and parameter header for details.
+     */
+    // TODO LAB 6 YOUR CODE HERE.
+    xTaskCreatePinnedToCore(&ioExpanderAInterruptTask , "ioExpanderAInterruptTask", TaskParameter::stack_size, nullptr, TaskParameter::priority_max, &task_handle_io_expander_a_interrupt_, TaskParameter::core_1);
+    xTaskCreatePinnedToCore(&ioExpanderBInterruptTask , "ioExpanderBInterruptTask", TaskParameter::stack_size, nullptr, TaskParameter::priority_max, &task_handle_io_expander_b_interrupt_, TaskParameter::core_1);
+
+    /*
+     *  Attach the I/O expander and encoder interrupt handlers.
+     *  Attach the I/O expander interrupt handlers first in rising mode.
+     *  Then, attach the encoder interrupt handlers in change mode.
      *
-     *  See the Pin enum for details.
+     *  See the interrupt and parameter header for details.
+     */
+    // TODO LAB 6 YOUR CODE HERE.
+    biped::attachInterrupt(ESP32Pin::io_expander_a_interrupt, ioExpanderAInterruptHandler, RISING);
+    biped::attachInterrupt(ESP32Pin::io_expander_b_interrupt, ioExpanderBInterruptHandler, RISING);
+    biped::attachInterrupt(ESP32Pin::motor_left_encoder_a, encoderLeftAInterruptHandler, CHANGE);
+    biped::attachInterrupt(ESP32Pin::motor_left_encoder_b, encoderLeftBInterruptHandler, CHANGE);
+    biped::attachInterrupt(ESP32Pin::motor_right_encoder_a, encoderRightAInterruptHandler, CHANGE);
+    biped::attachInterrupt(ESP32Pin::motor_right_encoder_b, encoderRightBInterruptHandler, CHANGE);
+
+    /*
+     *  Set pin mode for the push button pins using
+     *  the I/O expander pin mode functions. Use
+     *  pull-up if the pin mode is input.
+     *  See the parameter header for details.
+     */
+    // TODO LAB 7 YOUR CODE HERE.
+    io_expander_a_->pinModePortA(IOExpanderAPortAPin::pushbutton_a, INPUT_PULLUP);
+    io_expander_a_->pinModePortA(IOExpanderAPortAPin::pushbutton_b, INPUT_PULLUP);
+    io_expander_a_->pinModePortB(IOExpanderAPortBPin::pushbutton_c, INPUT_PULLUP);
+
+    /*
+     *  Attach the push button interrupt handlers using
+     *  the I/O expander functions in falling mode.
+     *  See the interrupt and parameter header for details.
+     */
+    // TODO LAB 7 YOUR CODE HERE.
+    io_expander_a_->attachInterruptPortA(IOExpanderAPortAPin::pushbutton_b, pushButtonBInterruptHandler, FALLING);
+    io_expander_a_->attachInterruptPortA(IOExpanderAPortAPin::pushbutton_a, pushButtonAInterruptHandler, FALLING);
+    io_expander_a_->attachInterruptPortB(IOExpanderAPortBPin::pushbutton_c, pushButtonCInterruptHandler, FALLING);
+
+
+    /*
+     *  Create real-time, Wi-Fi, and camera tasks using the
+     *  FreeRTOS xTaskCreatePinnedToCore function, in that
+     *  order. Set the task descriptive names to be their task
+     *  function names. The real-time task has the second
+     *  highest priority and the other two tasks have the
+     *  lowest priority. Pin all tasks to core 1.
+     *  See the global and parameter header for details.
+     */
+    // TODO LAB 6 YOUR CODE HERE.
+    xTaskCreatePinnedToCore(realTimeTask, "realTimeTask", TaskParameter::stack_size, nullptr, TaskParameter::priority_max-1, &task_handle_real_time_, TaskParameter::core_1);
+    xTaskCreatePinnedToCore(wiFiTask, "wiFiTask", TaskParameter::stack_size, nullptr, TaskParameter::priority_min, &task_handle_wifi_, TaskParameter::core_1);
+    xTaskCreatePinnedToCore(cameraTask, "cameraTask", TaskParameter::stack_size, nullptr, TaskParameter::priority_min, &task_handle_camera_, TaskParameter::core_1);
+
+    /*
+     *  Attach the timer interrupt handler to the interrupt timer.
+     *  See the interrupt header for details.
      */
     // TODO LAB 6 YOUR CODE HERE.
 
+    timer_->attachInterruptInterval(5000, timerInterruptHandler);
+
     /*
-     *  Enable timer thus starting the real-time tasks.
+     *  Print initialization status to serial based on
+     *  the current worst log level.
      */
-    // TODO LAB 5 YOUR CODE HERE.
-    /*
-        CREATE TASKS
-    */
-//    xTaskCreate (sensor_task, "SENSORTASK", TaskParameter::stack_size, (void *) 1, TaskParameter::priority_max-2, nullptr);
-   xTaskCreate (biped::realTimeTask, "REALTIMETASK", biped::TaskParameter::stack_size, (void *) 1, biped::TaskParameter::priority_max-2, &biped::task_handle_real_time_);
-
-    /*
-        SETUP TIMERS
-    */
-    // esp_intr_alloc(ETS_TG1_T0_LEVEL_INTR_SOURCE, 0, timerInterruptHandler, NULL, NULL); 
-    // esp_intr_alloc(ETS_TG1_T1_LEVEL_INTR_SOURCE, 0, timerInterruptHandler, NULL, NULL); 
-    esp_intr_alloc(ETS_TG1_T0_LEVEL_INTR_SOURCE, 0, timer0_isr, NULL, NULL); 
-    esp_intr_alloc(ETS_TG1_T1_LEVEL_INTR_SOURCE, 0, timer1_isr, NULL, NULL); 
-
-    /* for timer 0 PeriodParameter::fast */
-    uint32_t mask_1 = TIMG_T0_INCREASE | TIMG_T0_AUTORELOAD | ((TIMG_T0_DIVIDER_V & 400)<<TIMG_T0_DIVIDER_S) | TIMG_T0_LEVEL_INT_EN | TIMG_T1_ALARM_EN;
-    *(volatile uint32_t *)TIMG_T0CONFIG_REG(1) |= mask_1;
-
-    *(volatile uint32_t *)TIMG_T0ALARMHI_REG(1) = 0;
-    *(volatile uint32_t *)TIMG_T0ALARMLO_REG(1) = 1000;
-
-    *(volatile uint32_t *)TIMG_T0LOADHI_REG(1) = 0;
-    *(volatile uint32_t *)TIMG_T0LOADLO_REG(1) = 0;
-
-    /* for timer 1 PeriodParameter::slow */
-    uint32_t mask_2 = TIMG_T1_INCREASE | TIMG_T1_AUTORELOAD | ((TIMG_T1_DIVIDER_V & 3200)<<TIMG_T1_DIVIDER_S) | TIMG_T1_LEVEL_INT_EN | TIMG_T1_ALARM_EN;
-    *(volatile uint32_t *)TIMG_T1CONFIG_REG(1) |= mask_2;
-
-    *(volatile uint32_t *)TIMG_T1ALARMHI_REG(1) = 0;
-    *(volatile uint32_t *)TIMG_T1ALARMLO_REG(1) = 1000;
-
-    *(volatile uint32_t *)TIMG_T1LOADHI_REG(1) = 0;
-    *(volatile uint32_t *)TIMG_T1LOADLO_REG(1) = 0;
-
-    /* enable both timers */
-    *(volatile uint32_t *)TIMG_T0CONFIG_REG(1) |= TIMG_T0_EN;
-    *(volatile uint32_t *)TIMG_T1CONFIG_REG(1) |= TIMG_T1_EN;
-
-    if (biped::Serial::getLogLevelWorst() <= biped::LogLevel::error)
+    if (biped::Serial::getLogLevelWorst() <= LogLevel::error)
     {
-        biped::Serial(biped::LogLevel::warn) << "Initialized with error(s).";
+        biped::Serial(LogLevel::warn) << "Initialized with error(s).";
     }
     else
     {
-        biped::Serial(biped::LogLevel::info) << "Initialized.";
+        biped::Serial(LogLevel::info) << "Initialized.";
     }
 
-    // /* setting up I2C interface for motor control */
-    //   /* The class constructor only accepts 3 bits because whoever created the class already knew the I/O 
-    // ** expander started at address 0x20. Thus they take three bits and 'or' it with 0x20 to access the 
-    // ** correct IO expander. In otherwords, you can either send 0x20/0x27, or simply 0/7.
-    // */
-    // mcp = new MCP23018(0x20);
-
-    // mcp->begin();
-
-    // /* set MIRROR and INTCC. The rest, espeically BANK and SEQOP, should be cleared */
-    // mcp->writeToRegister(IOCON, IOCON_MIRROR | IOCON_INTCC | IOCON_INTPOL);
-
-
-    // // TODO setup IO expnader interrupts
-    // // attachInterrupt(io_expander_a_interrupt, gpio_isr, RISING);
-
-    // // TODO enable motor and set motor speed
-    // /* By default, all the pins are set up as outputs. Want to set up push buttons as inputs. Low is the same as setting as output */
-    // mcp->SetDirections(BIT(IOExpanderAPortAPin::pushbutton_a) | BIT(IOExpanderAPortAPin::pushbutton_b), BIT(IOExpanderAPortBPin::pushbutton_c));
-    // /* set pull up resistor for every pin */
-    // mcp->SetPullups(0xFF, 0xFF);
-    // /* enable the motor */
-    // mcp->SetBPin(IOExpanderAPortBPin::motor_enable, 1);
-
-    // /* interrupt configuration */
-
-
-    // /* Page 21 of documentation: by using the DEFVAL register as the interrupt on change source, and interrupt occures
-    // ** if the pin is the opposite value to its corresponding pin in the DEFVAL register. When the button is not being pressed,
-    // ** its GPIO pin will be high. Thus for the pins where the push buttons are connected, we want their values in DEFVAL to be high
-    // ** so that an interrupt occurs when the input is low (pushbuttons are active-low).
-    // */
-    // mcp->writeToRegister(DEFVALA, bit(IOExpanderAPortAPin::pushbutton_a) | bit(IOExpanderAPortAPin::pushbutton_b));
-    // mcp->writeToRegister(DEFVALB, bit(IOExpanderAPortBPin::pushbutton_c));
-
-    // /* Page 22 of documentation: set interrupt on change source to be from comparing the input pins to the values in the 
-    // ** DEFVAL register, not by their previous state. 
-    // */
-    // // mcp->writeToRegister(INTCONA, bit(IOExpanderAPortAPin::pushbutton_a) | bit(IOExpanderAPortAPin::pushbutton_b));
-    // // mcp->writeToRegister(INTCONB, bit(IOExpanderAPortBPin::pushbutton_c));
-    // attachInterrupt(ESP32Pin::io_expander_a_interrupt, gpio_isr, RISING);
-
-
-    // /* enable interrupt on change from the push buttons */
-    // mcp->writeToRegister(INTENA, bit(IOExpanderAPortAPin::pushbutton_a) | bit(IOExpanderAPortAPin::pushbutton_b));
-    // mcp->writeToRegister(INTENB, bit(IOExpanderAPortBPin::pushbutton_c));
-
-    // /* set up pin to command left and right motors with pwm signals */
-    // pinMode(ESP32Pin::motor_left_pwm, OUTPUT);
-    // analogWrite(ESP32Pin::motor_left_pwm, 200);
-    // pinMode(ESP32Pin::motor_right_pwm, OUTPUT);
-    // analogWrite(ESP32Pin::motor_right_pwm, 200);
-
+    
 }
 
 /**
- *  @brief  Arduino loop function.
+ *  @brief  Main program loop task function.
  *
- *  This function is periodically called by the
- *  Arduino framework. The function calls the
- *  best-effort task function.
+ *  This function is called by the loop task created and launched by
+ *  the ESP-IDF framework. The loop task has a low priority and calls
+ *  the best-effort task function.
  */
 void
 loop()
 {
+    /*
+     *  Perform best-effort tasks.
+     */
+    // TODO LAB 6 YOUR CODE HERE.
+    bestEffortTask();
 
     /* loop for bluetooth */
 
@@ -363,50 +303,69 @@ loop()
         
     }
 
-    /* Print the biped direction based on the data received via bluetooth */
-    biped::Display(0) << "Biped Direction: " << biped::biped_direction_;
+    /* DEBUG checking if pushbutton b was pressed */
+    // Display(6) << "PB: " << push_button_b_pressed;
 
-    /*
-     *  Perform best-effort tasks.
-     */
-    // bestEffortTask();
+    // /* sending actuator commands to motors */
+    // ActuationCommand curr_actuation_command(true, true, true, MotorParameter::pwm_max/2, MotorParameter::pwm_max/2);
+    // actuator_->actuate(curr_actuation_command);
+
+    /* grab actuation data */
+    ActuationCommand curr_command = actuator_->getActuationCommand();
 
     /* grabbing encoder data */
-    // biped::EncoderData temp_encoder_data = sensor_->getEncoderData();
+    biped::EncoderData temp_encoder_data = sensor_->getEncoderData();
     // Display(0) << "id: " << serial_number_;
-    // Display(1) << "Pos_x: " << temp_encoder_data.position_x;
-    // Display(2) << "Vel_x: " << temp_encoder_data.velocity_x;
-    // Display::display();
+    Display(4) << "Pos_x: " << temp_encoder_data.position_x;
+    Display(5) << "Vel_x: " << temp_encoder_data.velocity_x;
 
-    /* grabbing attitude data */
-    biped::IMUData bmx160_imu_data = biped::sensor_->getIMUDataMPU6050();
-    biped::TimeOfFlightData tof_data = biped::sensor_->getTimeOfFlightData();
-    /* Attitude Sensing - IMU READINGS*/
-    // biped::Display(0) << "yaw: " << bmx160_imu_data.attitude_z;
-    // biped::Display(1) << "accel_x: " << bmx160_imu_data.acceleration_x;
-    // biped::Display(2) << "accel_y: " << bmx160_imu_data.acceleration_y;
-    // biped::Display(3) << "accel_z: " << bmx160_imu_data.acceleration_z;
-    // biped::Display(4) << "av_x: " << bmx160_imu_data.angular_velocity_x;
-    // biped::Display(5) << "av_y: " << bmx160_imu_data.angular_velocity_y;
-    // biped::Display(6) << "av_z: " << bmx160_imu_data.angular_velocity_z;
-    /* Distance Sensing - TOF READINGS*/
-    float tof_left_dist = -1.0;
-    float tof_mid_dist = -1.0;
-    float tof_right_dist = -1.0;
-    if (tof_data.ranges_left.size() >= 1) {
-        tof_left_dist = tof_data.ranges_left[0];
-    }
-    if (tof_data.ranges_middle.size() >= 1) {
-        tof_mid_dist = tof_data.ranges_middle[0];
-    }
-    if (tof_data.ranges_right.size() >= 1) {
-        tof_right_dist = tof_data.ranges_right[0];
-    }
-    // biped::Display(7) << "tl " << int(tof_left_dist*1000) << " tm " << int(tof_mid_dist*1000) << " tr " << int(tof_right_dist*1000);
+    // /* grabbing velocity from encoders */
+    // EncoderData encoder_data = sensor_->getEncoderData();
+    // // Display(0) << "pos_x " << encoder_data.position_x;
+    // // Display(1) << "vel_x " << encoder_data.velocity_x;
+    // // Display(2) << "steps " << encoder_data.steps;
+
+    /* displaying BMX IMU data */
+    biped::IMUData bmx160_imu_data = sensor_->getIMUDataBMX160();
+
+    /* accelartions of BMX */
+    // Display(4) << "ax: " << bmx160_imu_data.acceleration_x;
+    // Display(5) << "ay: " << bmx160_imu_data.acceleration_y;
+    // Display(6) << "az: " << bmx160_imu_data.acceleration_z;
+    /* angular velocities of BMX */
+    // Display(4) << "avx: " << bmx160_imu_data.angular_velocity_x;
+    // Display(5) << "avy: " << bmx160_imu_data.angular_velocity_y;
+    // Display(6) << "avz: " << bmx160_imu_data.angular_velocity_z;
+    /* compass and heading of BMX */
+    // Display(4) << "cx: " << bmx160_imu_data.compass_x;
+    // Display(5) << "cy: " << bmx160_imu_data.compass_y;
+    Display(6) << "att_z: " << bmx160_imu_data.attitude_z;
+
+
+    /* displaying MPU IMU data */
+    biped::IMUData mpu_imu_data = sensor_->getIMUDataMPU6050();
+    // biped::TimeOfFlightData tof_data = sensor_->getTimeOfFlightData();
+    // // /* Attitude Sensing - IMU READINGS*/
+    // Display(7) << "pitch: " << mpu_imu_data.attitude_y;
+    // Display(1) << "yaw: " << bmx160_imu_data.attitude_z;
+    // Display(2) << "accel_x: " << mpu_imu_data.acceleration_x;
+    // Display(3) << "accel_y: " << mpu_imu_data.acceleration_y;
+    // Display(4) << "accel_z: " << mpu_imu_data.acceleration_z;
+    // Display(5) << "av_x: " << mpu_imu_data.angular_velocity_x;
+    // Display(5) << "av_y: " << mpu_imu_data.angular_velocity_y;
+    // Display(7) << "av_z: " << mpu_imu_data.angular_velocity_z;
+    // // /* Distance Sensing - TOF READINGS*/
+    // float tof_left_dist = -1.0;
+    // float tof_mid_dist = -1.0;
+    // float tof_right_dist = -1.0;
+    // tof_left_dist = tof_data.range_left;
+    // tof_mid_dist = tof_data.range_middle;
+    // tof_right_dist = tof_data.range_right;
+    // Display(7) << "tl " << int(tof_left_dist*1000) << " tm " << int(tof_mid_dist*1000) << " tr " << int(tof_right_dist*1000);
     // Display(0) << "ToF Left: " << tof_left_dist;
     // Display(1) << "ToF Mid: " << tof_mid_dist;
     // Display(2) << "ToF Right: " << tof_right_dist;
-    biped::Display::display();
+    Display::display();
     // biped::Serial(LogLevel::info) << "att_x: " << bmx160_imu_data.attitude_x << " att_y: " << bmx160_imu_data.attitude_y << " att_z: " << bmx160_imu_data.attitude_z
     // << "accel_x: " << bmx160_imu_data.acceleration_x << "accel_y: " << bmx160_imu_data.acceleration_y << "accel_z: " << bmx160_imu_data.acceleration_z 
     // << "av_x: " << bmx160_imu_data.angular_velocity_x << " av_y: " << bmx160_imu_data.angular_velocity_y << " av_z: " << bmx160_imu_data.angular_velocity_z
@@ -415,5 +374,4 @@ loop()
     // biped::Serial(LogLevel::info) << "EncoderData: " << temp_encoder_data;
     // biped::Serial(LogLevel::info) << "Encoder_x: " << temp_encoder_data.position_x << " Vel_x: " << temp_encoder_data.velocity_x;
     delay(50);
-
 }

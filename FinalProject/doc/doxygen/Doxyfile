@@ -219,14 +219,6 @@ QT_AUTOBRIEF           = NO
 
 MULTILINE_CPP_IS_BRIEF = NO
 
-# By default Python docstrings are displayed as preformatted text and doxygen's
-# special commands cannot be used. By setting PYTHON_DOCSTRING to NO the
-# doxygen's special commands can be used and the contents of the docstring
-# documentation blocks is shown as doxygen documentation.
-# The default value is: YES.
-
-PYTHON_DOCSTRING       = YES
-
 # If the INHERIT_DOCS tag is set to YES then an undocumented member inherits the
 # documentation from any documented member that it re-implements.
 # The default value is: YES.
@@ -452,19 +444,6 @@ TYPEDEF_HIDES_STRUCT   = NO
 
 LOOKUP_CACHE_SIZE      = 0
 
-# The NUM_PROC_THREADS specifies the number threads doxygen is allowed to use
-# during processing. When set to 0 doxygen will based this on the number of
-# cores available in the system. You can set it explicitly to a value larger
-# than 0 to get more control over the balance between CPU load and processing
-# speed. At this moment only the input processing can be done using multiple
-# threads. Since this is still an experimental feature the default is set to 1,
-# which effectively disables parallel processing. Please report any issues you
-# encounter. Generating dot graphs in parallel is controlled by the
-# DOT_NUM_THREADS setting.
-# Minimum value: 0, maximum value: 32, default value: 1.
-
-NUM_PROC_THREADS       = 1
-
 #---------------------------------------------------------------------------
 # Build related configuration options
 #---------------------------------------------------------------------------
@@ -527,13 +506,6 @@ EXTRACT_LOCAL_METHODS  = YES
 # The default value is: NO.
 
 EXTRACT_ANON_NSPACES   = NO
-
-# If this flag is set to YES, the name of an unnamed parameter in a declaration
-# will be determined by the corresponding definition. By default unnamed
-# parameters remain unnamed in the output.
-# The default value is: YES.
-
-RESOLVE_UNNAMED_PARAMS = YES
 
 # If the HIDE_UNDOC_MEMBERS tag is set to YES, doxygen will hide all
 # undocumented members inside documented classes or files. If set to NO these
@@ -601,12 +573,6 @@ HIDE_SCOPE_NAMES       = NO
 # The default value is: NO.
 
 HIDE_COMPOUND_REFERENCE= NO
-
-# If the SHOW_HEADERFILE tag is set to YES then the documentation for a class
-# will show which file needs to be included to use the class.
-# The default value is: YES.
-
-SHOW_HEADERFILE        = YES
 
 # If the SHOW_INCLUDE_FILES tag is set to YES then doxygen will put a list of
 # the files that are included by a file in the documentation of that file.
@@ -819,13 +785,6 @@ WARN_IF_UNDOCUMENTED   = YES
 
 WARN_IF_DOC_ERROR      = YES
 
-# If WARN_IF_INCOMPLETE_DOC is set to YES, doxygen will warn about incomplete
-# function parameter documentation. If set to NO, doxygen will accept that some
-# parameters have no documentation without warning.
-# The default value is: YES.
-
-WARN_IF_INCOMPLETE_DOC = YES
-
 # This WARN_NO_PARAMDOC option can be enabled to get warnings for functions that
 # are documented, but have no documentation for their parameters or return
 # value. If set to NO, doxygen will only warn about wrong parameter
@@ -874,7 +833,7 @@ WARN_LOGFILE           =
 # spaces. See also FILE_PATTERNS and EXTENSION_MAPPING
 # Note: If this tag is empty the current directory is searched.
 
-INPUT                  =
+INPUT                  = README.md src/biped
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses
@@ -1172,14 +1131,6 @@ VERBATIM_HEADERS       = YES
 
 CLANG_ASSISTED_PARSING = NO
 
-# If the CLANG_ASSISTED_PARSING tag is set to YES and the CLANG_ADD_INC_PATHS
-# tag is set to YES then doxygen will add the directory of each input to the
-# include path.
-# The default value is: YES.
-# This tag requires that the tag CLANG_ASSISTED_PARSING is set to YES.
-
-CLANG_ADD_INC_PATHS    = YES
-
 # If clang assisted parsing is enabled you can provide the compiler with command
 # line options that you would normally use when invoking the compiler. Note that
 # the include paths will already be set by doxygen for the files and directories
@@ -1403,13 +1354,6 @@ GENERATE_DOCSET        = NO
 
 DOCSET_FEEDNAME        = "Doxygen generated docs"
 
-# This tag determines the URL of the docset feed. A documentation feed provides
-# an umbrella under which multiple documentation sets from a single provider
-# (such as a company or product suite) can be grouped.
-# This tag requires that the tag GENERATE_DOCSET is set to YES.
-
-DOCSET_FEEDURL         =
-
 # This tag specifies a string that should uniquely identify the documentation
 # set bundle. This should be a reverse domain-name style string, e.g.
 # com.mycompany.MyDocSet. Doxygen will append .docset to the name.
@@ -1609,18 +1553,6 @@ DISABLE_INDEX          = NO
 
 GENERATE_TREEVIEW      = NO
 
-# When both GENERATE_TREEVIEW and DISABLE_INDEX are set to YES, then the
-# FULL_SIDEBAR option determines if the side bar is limited to only the treeview
-# area (value NO) or if it should extend to the full height of the window (value
-# YES). Setting this to YES gives a layout similar to
-# https://docs.readthedocs.io with more room for contents, but less room for the
-# project logo, title, and description. If either GENERATE_TREEVIEW or
-# DISABLE_INDEX is set to NO, this option has no effect.
-# The default value is: NO.
-# This tag requires that the tag GENERATE_HTML is set to YES.
-
-FULL_SIDEBAR           = NO
-
 # The ENUM_VALUES_PER_LINE tag can be used to set the number of enum values that
 # doxygen will group on one line in the generated HTML documentation.
 #
@@ -1644,24 +1576,6 @@ TREEVIEW_WIDTH         = 250
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
 EXT_LINKS_IN_WINDOW    = NO
-
-# If the OBFUSCATE_EMAILS tag is set to YES, doxygen will obfuscate email
-# addresses.
-# The default value is: YES.
-# This tag requires that the tag GENERATE_HTML is set to YES.
-
-OBFUSCATE_EMAILS       = YES
-
-# If the HTML_FORMULA_FORMAT option is set to svg, doxygen will use the pdf2svg
-# tool (see https://github.com/dawbarton/pdf2svg) or inkscape (see
-# https://inkscape.org) to generate formulas as SVG images instead of PNGs for
-# the HTML output. These images will generally look nicer at scaled resolutions.
-# Possible values are: png (the default) and svg (looks nicer but requires the
-# pdf2svg or inkscape tool).
-# The default value is: png.
-# This tag requires that the tag GENERATE_HTML is set to YES.
-
-HTML_FORMULA_FORMAT    = png
 
 # Use this tag to change the font size of LaTeX formulas included as images in
 # the HTML documentation. When you change the font size after a successful
@@ -1699,17 +1613,6 @@ FORMULA_MACROFILE      =
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
 USE_MATHJAX            = NO
-
-# With MATHJAX_VERSION it is possible to specify the MathJax version to be used.
-# Note that the different versions of MathJax have different requirements with
-# regards to the different settings, so it is possible that also other MathJax
-# settings have to be changed when switching between the different MathJax
-# versions.
-# Possible values are: MathJax_2 and MathJax_3.
-# The default value is: MathJax_2.
-# This tag requires that the tag USE_MATHJAX is set to YES.
-
-MATHJAX_VERSION        = MathJax_2
 
 # When MathJax is enabled you can set the default output format to be used for
 # the MathJax output. For more details about the output format see MathJax
@@ -2473,28 +2376,6 @@ UML_LOOK               = NO
 
 UML_LIMIT_NUM_FIELDS   = 10
 
-# If the DOT_UML_DETAILS tag is set to NO, doxygen will show attributes and
-# methods without types and arguments in the UML graphs. If the DOT_UML_DETAILS
-# tag is set to YES, doxygen will add type and arguments for attributes and
-# methods in the UML graphs. If the DOT_UML_DETAILS tag is set to NONE, doxygen
-# will not generate fields with class member information in the UML graphs. The
-# class diagrams will look similar to the default class diagrams but using UML
-# notation for the relationships.
-# Possible values are: NO, YES and NONE.
-# The default value is: NO.
-# This tag requires that the tag UML_LOOK is set to YES.
-
-DOT_UML_DETAILS        = NO
-
-# The DOT_WRAP_THRESHOLD tag can be used to set the maximum number of characters
-# to display on a single line. If the actual line length exceeds this threshold
-# significantly it will wrapped across multiple lines. Some heuristics are apply
-# to avoid ugly line breaks.
-# Minimum value: 0, maximum value: 1000, default value: 17.
-# This tag requires that the tag HAVE_DOT is set to YES.
-
-DOT_WRAP_THRESHOLD     = 17
-
 # If the TEMPLATE_RELATIONS tag is set to YES then the inheritance and
 # collaboration graphs will show the relations between templates and their
 # instances.
@@ -2560,13 +2441,6 @@ GRAPHICAL_HIERARCHY    = YES
 # This tag requires that the tag HAVE_DOT is set to YES.
 
 DIRECTORY_GRAPH        = YES
-
-# The DIR_GRAPH_MAX_DEPTH tag can be used to limit the maximum number of levels
-# of child directories generated in directory dependency graphs by dot.
-# Minimum value: 1, maximum value: 25, default value: 1.
-# This tag requires that the tag DIRECTORY_GRAPH is set to YES.
-
-DIR_GRAPH_MAX_DEPTH    = 1
 
 # The DOT_IMAGE_FORMAT tag can be used to set the image format of the images
 # generated by dot. For an explanation of the image formats see the section

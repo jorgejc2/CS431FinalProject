@@ -1,6 +1,8 @@
 # Add libraries
 add_library(
 	biped_platform
+	camera.cpp
+	compass.cpp
 	display.cpp
 	encoder.cpp
 	imu.cpp

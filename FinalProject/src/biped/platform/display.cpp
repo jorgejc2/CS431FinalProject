@@ -1,21 +1,35 @@
-/*
- * display.cpp
+/**
+ *  @file   display.cpp
+ *  @author Simon Yu
+ *  @date   01/02/2023
+ *  @brief  Display class source.
  *
- *  Created on: Jan 2, 2023
- *      Author: simonyu
+ *  This file implements the display class.
  */
 
+/*
+ *  Project headers.
+ */
 #include "platform/display.h"
 #include "common/global.h"
 #include "common/parameter.h"
 #include "sensor/sensor.h"
 
+/*
+ *  Biped namespace.
+ */
 namespace biped
 {
 Display::Display(const unsigned& line, const bool& raw) : line_(line)
 {
+    /*
+     *  Acquire the display driver mutex.
+     */
     lock_sh1107_.lock();
 
+    /*
+     *  Set up the display for printing depending on the printing mode.
+     */
     if (raw)
     {
         restoreCursor();
@@ -29,20 +43,36 @@ Display::Display(const unsigned& line, const bool& raw) : line_(line)
 
 Display::~Display()
 {
+    /*
+     *  Flush the member string stream buffer to the display
+     *  hardware driver.
+     */
     flush();
 
+    /*
+     *  Save the current X cursor position.
+     */
     cursor_x_locations_[line_] = sh1107_.getCursorX();
     displayed_ = false;
 
+    /*
+     *  Release the display driver mutex.
+     */
     lock_sh1107_.unlock();
 }
 
 void
 Display::initialize()
 {
+    /*
+     *  Declare text variables
+     */
     int16_t text_bound_x = 0;
     int16_t text_bound_y = 0;
 
+    /*
+     *  Initialize display driver object and configure the display.
+     */
     sh1107_.begin(AddressParameter::display, false);
     sh1107_.setCursor(0, 0);
     sh1107_.setRotation(DisplayParameter::rotation_upright);
@@ -53,16 +83,25 @@ Display::initialize()
     sh1107_.clearDisplay();
     sh1107_.display();
 
+    /*
+     *  Configure Z acceleration low-pass filter.
+     */
     low_pass_filter_acceleration_z_.setBeta(DisplayParameter::low_pass_filter_beta);
 }
 
 void
 Display::display()
 {
+    /*
+     *  Get low-pass filtered Z acceleration from MPU6050 IMU.
+     */
     static bool inverted = false;
     const auto acceleration_z = low_pass_filter_acceleration_z_.filter(
             sensor_->getIMUDataMPU6050().acceleration_z);
 
+    /*
+     *  Set display orientation based on Z acceleration.
+     */
     if (!inverted && acceleration_z < DisplayParameter::acceleration_z_rotation)
     {
         sh1107_.setRotation(DisplayParameter::rotation_inverted);
@@ -76,6 +115,9 @@ Display::display()
         inverted = false;
     }
 
+    /*
+     *  Flush display driver buffer to the display hardware.
+     */
     if (!displayed_)
     {
         sh1107_.display();
@@ -86,6 +128,10 @@ Display::display()
 Display&
 Display::operator<<(const StreamManipulator& item)
 {
+    /*
+     *  Interpret the given stream manipulator and perform
+     *  their respective functionalities.
+     */
     switch (item)
     {
         case StreamManipulator::carriage_return:
@@ -112,29 +158,47 @@ Display::operator<<(const StreamManipulator& item)
         }
     }
 
+    /*
+     *  Return a reference to this object.
+     */
     return *this;
 }
 
 void
 Display::carriageReturn()
 {
+    /*
+     *  Perform carriage return by setting X cursor position to zero.
+     */
     sh1107_.setCursor(0, line_ * font_height_);
 }
 
 void
 Display::clearLine()
 {
+    /*
+     *  Clear current line by filling the line with a black rectangle.
+     */
     sh1107_.fillRect(0, line_ * font_height_, DisplayParameter::width, font_height_, 0);
 }
 
 void
 Display::flush()
 {
+    /*
+     *  Declare text variables
+     */
     int16_t text_bound_x = 0;
     int16_t text_bound_y = 0;
     uint16_t text_height = 0;
     uint16_t text_width = 0;
 
+    /*
+     *  Get text bounds in the string stream buffer, fill
+     *  the bounds with a black rectangle, flush the string
+     *  stream buffer to the display driver buffer, and
+     *  clear the string stream buffer.
+     */
     sh1107_.getTextBounds(ss_.str().c_str(), sh1107_.getCursorX(), sh1107_.getCursorY(),
             &text_bound_x, &text_bound_y, &text_width, &text_height);
     sh1107_.fillRect(sh1107_.getCursorX(), sh1107_.getCursorY(), text_width, text_height, 0);
@@ -145,6 +209,9 @@ Display::flush()
 void
 Display::restoreCursor()
 {
+    /*
+     *  Restore cursor position to the last save position.
+     */
     if (cursor_x_locations_.count(line_))
     {
         sh1107_.setCursor(cursor_x_locations_[line_], line_ * font_height_);
@@ -155,6 +222,9 @@ Display::restoreCursor()
     }
 }
 
+/*
+ *  Initialize static class member variables.
+ */
 std::map<unsigned, int16_t> Display::cursor_x_locations_ = std::map<unsigned, int16_t>();
 volatile bool Display::displayed_ = true;
 uint16_t Display::font_height_ = 0;
@@ -166,4 +236,4 @@ LowPassFilter<double> Display::low_pass_filter_acceleration_z_ = LowPassFilter<d
 Adafruit_SH1107 Display::sh1107_ = Adafruit_SH1107(DisplayParameter::height,
         DisplayParameter::width, &Wire, DisplayParameter::reset_pin, DisplayParameter::preclk,
         DisplayParameter::postclk);
-}
+}   // namespace biped

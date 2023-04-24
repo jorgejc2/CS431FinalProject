@@ -11,21 +11,31 @@
  *  Project headers.
  */
 #include "common/global.h"
-#include "common/type.h"
-#include "platform/display.h"
 #include "platform/io_expander.h"
 #include "common/parameter.h"
 #include "common/pin.h"
-#include "platform/serial.h"
 #include "sensor/sensor.h"
 
 /*
- *  biped namespace.
+ *  Biped namespace.
  */
 namespace biped
 {
 Sensor::Sensor()
 {
+    /*
+     *  Set pin mode for the time-of-flight shutdown pins using
+     *  the I/O expander pin mode functions.
+     *  See the parameter header for details.
+     */
+    // TODO LAB 6 YOUR CODE HERE.
+
+    /*
+     *  Instantiate all time-of-flight objects and store
+     *  their unique pointers.
+     *  See the parameter header for details.
+     */
+    // TODO LAB 6 YOUR CODE HERE.
     if (io_expander_a_)
     {
         io_expander_a_->pinModePortA(IOExpanderAPortAPin::time_of_flight_left_shutdown, OUTPUT);
@@ -46,27 +56,57 @@ Sensor::Sensor()
                             + IOExpanderParameter::num_port_pins, io_expander_a_));
 }
 
+Compass::Calibration
+Sensor::getCompassCalibrationBMX160() const
+{
+    /*
+     *  Get BMX160 compass calibration struct from the
+     *  member IMU object and return the struct.
+     */
+    // TODO LAB 7 YOUR CODE HERE.
+    return imu_.getCompassCalibrationBMX160();
+}
+
 EncoderData
 Sensor::getEncoderData() const
 {
+    /*
+     *  Get encoder data struct from the member encoder
+     *  object and return the struct.
+     */
+    // TODO LAB 6 YOUR CODE HERE.
     return encoder_.getData();
 }
 
 IMUData
 Sensor::getIMUDataBMX160() const
 {
+    /*
+     *  Get BMX160 IMU data struct from the member IMU
+     *  object and return the struct.
+     */
+    // TODO LAB 6 YOUR CODE HERE.
     return imu_.getDataBMX160();
 }
 
 IMUData
 Sensor::getIMUDataMPU6050() const
 {
+    /*
+     *  Get MPU6050 IMU data struct from the member IMU
+     *  object and return the struct.
+     */
+    // TODO LAB 6 YOUR CODE HERE.
     return imu_.getDataMPU6050();
 }
 
 TimeOfFlightData
 Sensor::getTimeOfFlightData() const
 {
+    /*
+     *  Return the class member time-of-flight data struct.
+     */
+    // TODO LAB 6 YOUR CODE HERE.
     return time_of_flight_data_;
 }
 
@@ -76,22 +116,22 @@ Sensor::sense(const bool& fast_domain)
     /*
      *  The fast domain tasks are the ones that requires
      *  faster execution frequency, such as the reading of
-     *  the MPU, the attitude calculation, and etc. If such
-     *  tasks were performed too seldomly, it might causes
-     *  inaccurate or delayed data sampling. For example, if
-     *  the attitude was calculated too seldomly, then it
+     *  the IMU, the attitude calculation, and etc. If such
+     *  tasks were performed too infrequently, the delay might
+     *  cause inaccurate or delayed data sampling. For example, if
+     *  the attitude was calculated too infrequently, then it
      *  is possible that the plant has already moved to another
      *  pose during the gap between the calculations, which could
-     *  cause, for instance, the robot failing to perfectly
+     *  cause, for instance, Biped failing to perfectly
      *  balance itself due to the delayed sample.
      *
      *  The slow domain tasks, on the other hand, are the ones
-     *  that are better executed at lower frequency due to noise or
-     *  performance issues. For example, the velocity here is
-     *  calculated by dividing the encoder step count per period by the
-     *  period. The smaller the period, the noisier the velocity.
-     *  Additionally, it is unnecessary to read less important sensors
-     *  such as the ultrasonic sensor at higher frequency. Thus, it's
+     *  that are better executed at lower frequency due to sensor noise
+     *  or performance issues. For example, the X velocity is
+     *  calculated as the number of encoder steps per unit time.
+     *  The smaller the period, the noisier the velocity.
+     *  Additionally, it is unnecessary to read non-essential sensors
+     *  such as the time-of-flight sensors at higher frequency. Thus, it's
      *  more performance-friendly to process such tasks in slow domain.
      */
     if (fast_domain)
@@ -103,6 +143,7 @@ Sensor::sense(const bool& fast_domain)
 
         /* This reads data from the motor encoder and populates the private data struct that can be read with getData() */
         encoder_.read();
+        
         /*
          *  Read BMX160.
          */
@@ -122,39 +163,78 @@ Sensor::sense(const bool& fast_domain)
         /*
          *  Calculate velocity.
          */
-        // TODO LAB 5 YOUR CODE HERE.
+        // TODO LAB 6 YOUR CODE HERE.
+        encoder_.calculateVelocity();
 
         /*
          *  Read time-of-flight sensors.
          */
-        // TODO LAB 5 YOUR CODE HERE.
-        time_of_flight_left_->read(time_of_flight_data_.ranges_left);
-        time_of_flight_middle_->read(time_of_flight_data_.ranges_middle);
-        time_of_flight_right_->read(time_of_flight_data_.ranges_right);
+        // TODO LAB 6 YOUR CODE HERE.
+        /* this is the implementation for lab 5 using vectors */
+        // time_of_flight_left_->read(time_of_flight_data_.ranges_left);
+        // time_of_flight_middle_->read(time_of_flight_data_.ranges_middle);
+        // time_of_flight_right_->read(time_of_flight_data_.ranges_right);
+
+        /* this is now the new implementation going forward */
+        time_of_flight_data_.range_left = time_of_flight_left_->read();
+        time_of_flight_data_.range_middle = time_of_flight_middle_->read();
+        time_of_flight_data_.range_right = time_of_flight_right_->read();
     }
 }
 
-void
-Sensor::onEncoderChangeLeftA()
+void IRAM_ATTR
+Sensor::onEncoderLeftA()
 {
-    encoder_.onChangeLeftA();
+    /*
+     *  Call left encoder A callback function.
+     *  See the encoder class for details.
+     */
+    // TODO LAB 6 YOUR CODE HERE.
+    encoder_.onLeftA();
 }
 
-void
-Sensor::onEncoderChangeLeftB()
+void IRAM_ATTR
+Sensor::onEncoderLeftB()
 {
-    encoder_.onChangeLeftB();
+    /*
+     *  Call left encoder B callback function.
+     *  See the encoder class for details.
+     */
+    // TODO LAB 6 YOUR CODE HERE.
+    encoder_.onLeftB();
 }
 
-void
-Sensor::onEncoderChangeRightA()
+void IRAM_ATTR
+Sensor::onEncoderRightA()
 {
-    encoder_.onChangeRightA();
+    /*
+     *  Call right encoder A callback function.
+     *  See the encoder class for details.
+     */
+    // TODO LAB 6 YOUR CODE HERE.
+    encoder_.onRightA();
 }
 
-void
-Sensor::onEncoderChangeRightB()
+void IRAM_ATTR
+Sensor::onEncoderRightB()
 {
-    encoder_.onChangeRightB();
+    /*
+     *  Call right encoder B callback function.
+     *  See the encoder class for details.
+     */
+    // TODO LAB 6 YOUR CODE HERE.
+    encoder_.onRightB();
+}
+
+void IRAM_ATTR
+Sensor::onPushButtonB()
+{
+    /*
+     *  Call push button B callback function.
+     *  See the IMU class for details.
+     */
+    // TODO LAB 7 YOUR CODE HERE.
+    imu_.onPushButtonB();
+
 }
 }   // namespace biped

@@ -22,7 +22,7 @@
 #include <vector>
 
 /*
- *  biped namespace.
+ *  Biped namespace.
  */
 namespace biped
 {
@@ -38,25 +38,60 @@ public:
 
     using Frame = std::vector<Eigen::Vector3i>;
 
+    /**
+     *  @brief  NeoPixel class constructor.
+     *
+     *  This constructor initializes all class member variables.
+     *  Additionally, the constructor initializes the NeoPixel
+     *  driver and clears the NeoPixel LED array.
+     */
     NeoPixel();
 
+    /**
+     *  @param  brightness LED brightness.
+     *  @brief  Set the brightness of the NeoPixel LED array.
+     *
+     *  This function sets the brightness of the NeoPixel
+     *  LED array. The brightness value is clamped between
+     *  the minimum and maximum LED brightness values defined
+     *  in the NeoPixel parameter namespace.
+     */
     void
     setBrightness(const int& brightness);
 
+    /**
+     *  @param  frame NeoPixel frame.
+     *  @brief  Set the NeoPixel frame.
+     *
+     *  This function sets the NeoPixel frame.
+     */
     void
     setFrame(const std::shared_ptr<Frame> frame);
 
+    /**
+     *  @brief  Clear the NeoPixel LED array.
+     *
+     *  This function clears the NeoPixel LED array.
+     */
     void
     clear();
 
+    /**
+     *  @brief  Show the NeoPixel frames to the NeoPixel LED array.
+     *
+     *  This function shows class member NeoPixel frames to the
+     *  NeoPixel LED array. The frame showed depends on the current
+     *  worst log level. This function is expected to be called
+     *  periodically.
+     */
     void
     show();
 
 private:
 
-    std::shared_ptr<Frame> frame_;
-    std::shared_ptr<Frame> frame_error_;
-    Adafruit_NeoPixel neopixel_;
+    std::shared_ptr<Frame> frame_;  //!< NeoPixel frame shared pointer.
+    std::shared_ptr<Frame> frame_error_;    //!< NeoPixel error frame shared pointer.
+    Adafruit_NeoPixel neopixel_;    //!< Adafruit NeoPixel driver object.
 };
 }   // namespace biped
 

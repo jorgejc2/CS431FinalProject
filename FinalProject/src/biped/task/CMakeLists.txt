@@ -16,4 +16,5 @@ target_link_libraries(
 target_link_arduino_libraries(
 	biped_task PRIVATE
 	core
+	WiFi
 )

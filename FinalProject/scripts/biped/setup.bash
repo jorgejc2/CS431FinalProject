@@ -42,8 +42,6 @@ function install_arduino_cli()
 		return
 	fi
 
-	mkdir -p "$arduino_cli_dir_install"
-
 	# Create temporary directory
 	local temp_dir
 	temp_dir="$(mktemp -d /tmp/$project_name-XXXXXXXXXX)"
@@ -58,7 +56,7 @@ function install_arduino_cli()
 	# Install Arduino CLI
 	echo "[INFO]: Installing \"$arduino_cli_name $arduino_cli_version\"..."
 	tar -xzf "$arduino_cli_file"
-	cp "$arduino_cli_name" "$arduino_cli_dir_install/$arduino_cli_name"
+	sudo cp "$arduino_cli_name" "$arduino_cli_dir_install/$arduino_cli_name"
 	assert_warn $? "Failed to install \"$arduino_cli_name $arduino_cli_version\""
 	echo "[INFO]: Finished installing \"$arduino_cli_name $arduino_cli_version\"."
 
@@ -172,6 +170,7 @@ function install_mcp23018()
 	cd "$temp_dir/$mcp23018_name/libraries/$mcp23018_name"
 	git checkout -q "$mcp23018_version"
 	git apply -v "$project_dir_config/libraries/$mcp23018_name/esp32.patch"
+	git apply -v "$project_dir_config/libraries/$mcp23018_name/i2c.patch"
 	assert_warn $? "Failed to configure \"$mcp23018_name $mcp23018_version_short\""
 
 	# Install MCP23018
@@ -201,6 +200,8 @@ function configure_dfrobot_bmx160()
 	echo "[INFO]: Configuring \"$dfrobot_bmx160_name $dfrobot_bmx160_version\"..."
 	cd "$project_dir_libraries/$dfrobot_bmx160_name"
 	git apply -v "$project_dir_config/libraries/$dfrobot_bmx160_name/macro.patch"
+	git apply -v "$project_dir_config/libraries/$dfrobot_bmx160_name/i2c.patch"
+	git apply -v "$project_dir_config/libraries/$dfrobot_bmx160_name/gyro.patch"
 	assert_error $? "Failed to configure \"$dfrobot_bmx160_name $dfrobot_bmx160_version\""
 }
 
@@ -264,6 +265,9 @@ function install_libraries()
 	# Install Eigen
 	install_arduino_library "$eigen_name" "$eigen_version" "$eigen_author"
 
+	# Install ESP32TimerInterrupt
+	install_arduino_library "$esp32timerinterrupt_name" "$esp32timerinterrupt_version" "$esp32timerinterrupt_author"
+
 	# Install Kalman Filter Library
 	install_arduino_library "$kalman_filter_library_name" "$kalman_filter_library_version" "$kalman_filter_library_author" "configure_kalman_filter_library"
 
@@ -300,8 +304,6 @@ function create_project()
 
 function main()
 {
-    export PATH="$HOME/.local/bin:$PATH"
-
 	# Validate operating system
 	validate_os
 
@@ -313,8 +315,6 @@ function main()
 
 	# Create project
 	create_project
-
-    python3 -m pip install --user pyserial
 
 	echo "[INFO]: Finished seting up \"$project_name\"."
 }

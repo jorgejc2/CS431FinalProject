@@ -19,6 +19,7 @@ target_link_arduino_libraries(
 	EEPROM
 	SPI
 	Wire
+	"ESP32TimerInterrupt"
 )
 
 # Set arduino upload targets

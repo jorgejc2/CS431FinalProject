@@ -20,19 +20,26 @@ include_directories(
 	"${ARDUINO_BOARD_RUNTIME_PLATFORM_PATH}/cores/esp32"
 	"${ARDUINO_BOARD_RUNTIME_PLATFORM_PATH}/libraries/EEPROM/src"
 	"${ARDUINO_BOARD_RUNTIME_PLATFORM_PATH}/libraries/SPI/src"
+	"${ARDUINO_BOARD_RUNTIME_PLATFORM_PATH}/libraries/WiFi/src"
 	"${ARDUINO_BOARD_RUNTIME_PLATFORM_PATH}/libraries/Wire/src"
-	"${ARDUINO_BOARD_RUNTIME_PLATFORM_PATH}/libraries/Wifi/src"
-	"${ARDUINO_BOARD_RUNTIME_PLATFORM_PATH}/libraries/WebServer/src"
 	"${ARDUINO_BOARD_RUNTIME_PLATFORM_PATH}/variants/esp32"
 	"${ARDUINO_BOARD_COMPILER_SDK_PATH}/include/config"
 	"${ARDUINO_BOARD_COMPILER_SDK_PATH}/include/driver/include"
-	"${ARDUINO_BOARD_COMPILER_SDK_PATH}/include/esp32-camera/driver/include"
 	"${ARDUINO_BOARD_COMPILER_SDK_PATH}/include/esp_common/include"
+	"${ARDUINO_BOARD_COMPILER_SDK_PATH}/include/esp_http_server/include"
+	"${ARDUINO_BOARD_COMPILER_SDK_PATH}/include/esp_hw_support/include"
+	"${ARDUINO_BOARD_COMPILER_SDK_PATH}/include/esp_timer/include"
+	"${ARDUINO_BOARD_COMPILER_SDK_PATH}/include/esp32-camera/conversions/include"
+	"${ARDUINO_BOARD_COMPILER_SDK_PATH}/include/esp32-camera/driver/include"
+	"${ARDUINO_BOARD_COMPILER_SDK_PATH}/include/fb_gfx/include"
 	"${ARDUINO_BOARD_COMPILER_SDK_PATH}/include/freertos/include"
 	"${ARDUINO_BOARD_COMPILER_SDK_PATH}/include/freertos/include/esp_additions"
 	"${ARDUINO_BOARD_COMPILER_SDK_PATH}/include/freertos/include/esp_additions/freertos"
 	"${ARDUINO_BOARD_COMPILER_SDK_PATH}/include/freertos/port/xtensa/include"
 	"${ARDUINO_BOARD_COMPILER_SDK_PATH}/include/hal/include"
+	"${ARDUINO_BOARD_COMPILER_SDK_PATH}/include/hal/platform_port/include"
+	"${ARDUINO_BOARD_COMPILER_SDK_PATH}/include/log/include"
+	"${ARDUINO_BOARD_COMPILER_SDK_PATH}/include/nghttp/port/include"
 	"${ARDUINO_BOARD_COMPILER_SDK_PATH}/include/soc/esp32/include/soc"
 	"${CMAKE_SOURCE_DIR}/../libraries/Adafruit_BusIO"
 	"${CMAKE_SOURCE_DIR}/../libraries/Adafruit_GFX_Library"
@@ -42,14 +49,18 @@ include_directories(
 	"${CMAKE_SOURCE_DIR}/../libraries/Adafruit_Unified_Sensor"
 	"${CMAKE_SOURCE_DIR}/../libraries/DFRobot_BMX160"
 	"${CMAKE_SOURCE_DIR}/../libraries/Eigen"
+	"${CMAKE_SOURCE_DIR}/../libraries/ESP32TimerInterrupt/src"
 	"${CMAKE_SOURCE_DIR}/../libraries/Kalman_Filter_Library"
 	"${CMAKE_SOURCE_DIR}/../libraries/MCP23018"
 	"${CMAKE_SOURCE_DIR}/../libraries/STM32duino_VL53L4CX/src"
 )
 
 # Add subdirectories
+add_subdirectory(actuator)
 add_subdirectory(common)
+add_subdirectory(controller)
 add_subdirectory(main)
+add_subdirectory(planner)
 add_subdirectory(platform)
 add_subdirectory(sensor)
 add_subdirectory(task)
