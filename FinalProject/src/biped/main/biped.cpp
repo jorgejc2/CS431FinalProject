@@ -341,6 +341,17 @@ loop()
     // Display(5) << "cy: " << bmx160_imu_data.compass_y;
     Display(6) << "att_z: " << bmx160_imu_data.attitude_z;
 
+    static double previous_steps_x = 0; // Specifically the position_x from encoder
+    static double previous_position_x = 0;
+    static double previous_position_y = 0;
+
+    double dist_x = temp_encoder_data.position_x - previous_steps_x;
+    double new_x = cos(bmx160_imu_data.attitude_z) * dist_x + previous_position_x;
+    double new_y = sin(bmx160_imu_data.attitude_z) * dist_x + previous_position_y;
+
+    previous_steps_x = temp_encoder_data.position_x;
+    previous_position_x = new_x; 
+    previous_position_y = new_y;
 
     /* displaying MPU IMU data */
     biped::IMUData mpu_imu_data = sensor_->getIMUDataMPU6050();
