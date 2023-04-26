@@ -57,7 +57,7 @@ Camera::Camera() : httpd_handle_(nullptr)
     camera_config.pin_pwdn = ESP32Pin::camera_pwdn;
     camera_config.pin_reset = ESP32Pin::camera_reset;
     camera_config.xclk_freq_hz = CameraParameter::xclk_frequency;
-    camera_config.frame_size = FRAMESIZE_HVGA;
+    camera_config.frame_size = FRAMESIZE_QVGA;
     camera_config.pixel_format = PIXFORMAT_JPEG;
     camera_config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
     camera_config.fb_location = CAMERA_FB_IN_DRAM;
