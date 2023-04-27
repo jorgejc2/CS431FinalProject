@@ -11,6 +11,7 @@
  *  Project headers.
  */
 #include "common/global.h"
+#include "common/type.h"
 
 /*
  *  Biped namespace.
@@ -30,11 +31,15 @@ std::shared_ptr<Planner> planner_ = nullptr;
 std::shared_ptr<Sensor> sensor_ = nullptr;
 std::shared_ptr<ESP32TimerInterrupt> timer_ = nullptr;
 
+// std::shared_ptr<ControllerReference> controled_reference = nullptr;
+
 /* debugger values */
 int output_position_x = 0;
 int output_attitude_y = 0;
 int volatile push_button_b_pressed = 0;
 
+float integrated_angle_x = 0;
+float previous_angle_x = 0;
 /*
  *  Initialize I2C driver object mutex and mutex lock.
  */

@@ -113,21 +113,27 @@ constexpr double attitude_y_active = 25; //!< Maximum Y attitude for controller 
  * att y: Kp = 3000; Kd = -40
  * position x: Kp = -2000; Kd = 1000
 */
+/*
+    attz
+    Kp = 35
+    Kd = 0
+    Ki = 0
+*/
 constexpr double attitude_y_gain_proportional = -3000; //!< Y attitude PID controller proportional gain.
 constexpr double attitude_y_gain_differential = -40; //!< Y attitude PID controller differential gain.
 constexpr double attitude_y_gain_integral = 0;  //!< Y attitude PID controller integral gain.
 constexpr double attitude_y_gain_integral_max = 0; //!< Y attitude PID controller maximum integral error.
 constexpr double attitude_z_gain_proportional = 40; //!< Z attitude PID controller proportional gain.
-constexpr double attitude_z_gain_differential = 40; //!< Z attitude PID controller differential gain.
+constexpr double attitude_z_gain_differential = 30; //!< Z attitude PID controller differential gain.
 constexpr double attitude_z_gain_integral = 0;  //!< Z attitude PID controller integral gain.
 constexpr double attitude_z_gain_integral_max = 0; //!< Z attitude PID controller maximum integral error.
-constexpr double attitude_z_gain_open_loop = 100;    //!< Z attitude open-loop controller gain.
+constexpr double attitude_z_gain_open_loop = 50;    //!< Z attitude open-loop controller gain.
 constexpr double position_x_gain_proportional = 600; //!< X position PID controller proportional gain.
 constexpr double position_x_gain_differential = 900; //!< X position PID controller differential gain.
 constexpr double position_x_gain_integral = 0;  //!< X position PID controller integral gain.
 constexpr double position_x_gain_integral_max = 0; //!< X position PID controller maximum integral error.
-constexpr double position_x_saturation_input_lower = -0.3; //!< X position controller input saturation lower bound.
-constexpr double position_x_saturation_input_upper = 0.3; //!< X position controller input saturation upper bound.
+constexpr double position_x_saturation_input_lower = -0.2; //!< X position controller input saturation lower bound.
+constexpr double position_x_saturation_input_upper = 0.2; //!< X position controller input saturation upper bound.
 }   // namespace ControllerParameter
 
 /*

@@ -265,8 +265,9 @@ bestEffortTask()
      *  See the planner class for details.
      */
     // TODO LAB 8 YOUR CODE HERE.
-
-    const int stage = planner_->plan();
+    int stage = -1;
+    if (planner_ != nullptr)
+        stage = planner_->plan();
 
     /*
      *  Print planner status to display.

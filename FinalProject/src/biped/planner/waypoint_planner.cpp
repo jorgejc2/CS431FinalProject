@@ -36,6 +36,9 @@ WaypointPlanner::WaypointPlanner() : waypoint_counter_(1), waypoint_timer_(0), p
     std::shared_ptr<Waypoint> waypoint_3 = std::make_shared<Waypoint>();
     std::shared_ptr<Waypoint> waypoint_4 = std::make_shared<Waypoint>();
     std::shared_ptr<Waypoint> waypoint_5 = std::make_shared<Waypoint>();
+    std::shared_ptr<Waypoint> waypoint_6 = std::make_shared<Waypoint>();
+    std::shared_ptr<Waypoint> waypoint_7 = std::make_shared<Waypoint>();
+    // std::shared_ptr<Waypoint> waypoint_8 = std::make_shared<Waypoint>();
 
     /*
      *  Set the start and current waypoints.
@@ -60,7 +63,7 @@ WaypointPlanner::WaypointPlanner() : waypoint_counter_(1), waypoint_timer_(0), p
      */
     waypoint_2->controller_reference.attitude_z = degreesToRadians(0);
     waypoint_2->controller_reference.position_x = 1;
-    waypoint_2->duration = 10;
+    waypoint_2->duration = 5;
     waypoint_2->next = waypoint_3;
 
     /*
@@ -70,7 +73,7 @@ WaypointPlanner::WaypointPlanner() : waypoint_counter_(1), waypoint_timer_(0), p
      */
     waypoint_3->controller_reference.attitude_z = degreesToRadians(-90);
     waypoint_3->controller_reference.position_x = 2;
-    waypoint_3->duration = 10;
+    waypoint_3->duration = 5;
     waypoint_3->next = waypoint_4;
 
     /*
@@ -80,7 +83,7 @@ WaypointPlanner::WaypointPlanner() : waypoint_counter_(1), waypoint_timer_(0), p
      */
     waypoint_4->controller_reference.attitude_z = degreesToRadians(0);
     waypoint_4->controller_reference.position_x = 1;
-    waypoint_4->duration = 10;
+    waypoint_4->duration = 5;
     waypoint_4->next = waypoint_5;
 
     /*
@@ -88,10 +91,26 @@ WaypointPlanner::WaypointPlanner() : waypoint_counter_(1), waypoint_timer_(0), p
      *      - Go to 0 meter X position (1 meter backward) without turning for 10 seconds.
      *      - Then, plan completed.
      */
-    waypoint_5->controller_reference.attitude_z = degreesToRadians(0);
-    waypoint_5->controller_reference.position_x = 0;
-    waypoint_5->duration = 10;
-    waypoint_5->next = nullptr;
+    waypoint_5->controller_reference.attitude_z = degreesToRadians(90);
+    waypoint_5->controller_reference.position_x = 2;
+    waypoint_5->duration = 5;
+    waypoint_5->next = waypoint_6;
+
+    waypoint_6->controller_reference.attitude_z = degreesToRadians(0);
+    waypoint_6->controller_reference.position_x = 1;
+    waypoint_6->duration = 5;
+    waypoint_6->next = waypoint_7;
+
+    /*
+     *  Example plan waypoint 4 configuration:
+     *      - Go to 1 meter X position (1 meter backward) while turning right 90 degrees for 10 seconds.
+     *      - Then, start waypoint 5.
+     */
+    waypoint_7->controller_reference.attitude_z = degreesToRadians(0);
+    waypoint_7->controller_reference.position_x = 0;
+    waypoint_7->duration = 10;
+    waypoint_7->next = nullptr;
+
 
     /*
      *  Using the example plan above, create your own waypoint-based plan.

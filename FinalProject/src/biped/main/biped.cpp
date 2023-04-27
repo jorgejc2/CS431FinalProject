@@ -34,6 +34,7 @@
 #include "planner/waypoint_planner.h"
 
 #include "BluetoothSerial.h"
+#include <string>
 
 /* Check if Bluetooth configurations are enabled in the SDK */
 /* If not, then you have to recompile the SDK */
@@ -51,7 +52,14 @@ using namespace biped;
 
 BluetoothSerial SerialBT;
 
+void moveLeft();
+void moveRight();
+void moveForward();
+void moveBack();
+ControllerReference controled_reference;
 
+double pos_x_step_val = 0.05; // meters
+double att_z_step_val = 5;   // degrees
 /**
  *  @brief  Main program setup function.
  *
@@ -75,6 +83,7 @@ setup()
 
     Serial::initialize();
     biped::Serial::setLogLevelMax(biped::SerialParameter::log_level_max);
+    SerialBT.begin("ESP32_Control_Jorge");
 
     /*
      *  Set I2C driver object (Wire) SDA and SCL pins and set the
@@ -105,22 +114,19 @@ setup()
      *  See the global and parameter header for details.
      */
     // TODO LAB 6 YOUR CODE HERE.
-    camera_ = std::shared_ptr<Camera>(new Camera());
-    // io_expander_a_ = std::shared_ptr<IOExpander>(new IOExpander(AddressParameter::io_expander_a));
-    // io_expander_b_ = std::shared_ptr<IOExpander>(new IOExpander(AddressParameter::io_expander_b));
+    // camera_ = std::shared_ptr<Camera>(new Camera());
+    gpio_install_isr_service(0);
     io_expander_a_ = std::make_shared<IOExpander>(AddressParameter::io_expander_a);
     io_expander_b_ = std::make_shared<IOExpander>(AddressParameter::io_expander_b);
     actuator_ = std::shared_ptr<Actuator>(new Actuator());
     controller_ = std::shared_ptr<Controller>(new Controller());
-    /* Learn how to properly initialize NeoPixel later if it's needed */
-    // neopixel_ = std::shared_ptr<NeoPixel>( new NeoPixel() );
     sensor_ = std::shared_ptr<biped::Sensor>(new biped::Sensor());
     /* Change depending on desired Planner*/
-    planner_ = std::shared_ptr<WaypointPlanner>(new WaypointPlanner());
+    // planner_ = std::shared_ptr<WaypointPlanner>(new WaypointPlanner());
     // planner_ =  std::shared_ptr<ManeuverPlanner>(new ManeuverPlanner());
     timer_ = std::make_shared<ESP32TimerInterrupt>(0);
    
-    
+    // controled_reference = std::make_shared<ControllerReference>();
 
     /*
      *  Read and store the serial number from the EEPROM.
@@ -262,46 +268,24 @@ loop()
             biped::biped_direction_ = button;
         else
             biped::biped_direction_ = 0;
-        
-        // switch (button) {
-        // /* left button */
-        // case 1:  
-        //     if (value) {
-        //         biped_direction_ = 1;
-        //     }
-        //     else {
-        //         biped_direction_ = 0;
-        //     }
-        //     break;
-        // /* forward button */
-        // case 2:  
-        //     if (value) {
-        //         biped_direction_ = 2;
-        //     }
-        //     else {
-        //         biped_direction_ = 0;
-        //     }
-        // /* right button */
-        // case 3:  
-        //     if (value) {
-        //         biped_direction_ = 3;
-        //     }
-        //     else {
-        //         biped_direction_ = 0;
-        //     }
-        //     break;
-        // /* backward button */
-        // case 4:
-        // if (value) {
-        //         biped_direction_ = 4;
-        //     }
-        //     else {
-        //         biped_direction_ = 0;
-        //     }
-        //     break;
-        // }
-        
     }
+
+    switch(biped::biped_direction_){
+        case 1:
+        moveLeft();
+        break;
+        case 2:
+        moveForward();
+        break;
+        case 3:
+        moveRight();
+        break;
+        case 4:
+        moveBack();
+        break;
+    }
+
+    // controller_->setControllerReference(*controled_reference);
 
     /* DEBUG checking if pushbutton b was pressed */
     // Display(6) << "PB: " << push_button_b_pressed;
@@ -316,8 +300,10 @@ loop()
     /* grabbing encoder data */
     biped::EncoderData temp_encoder_data = sensor_->getEncoderData();
     // Display(0) << "id: " << serial_number_;
-    Display(4) << "Pos_x: " << temp_encoder_data.position_x;
-    Display(5) << "Vel_x: " << temp_encoder_data.velocity_x;
+    Display(4) << "bpd: " << biped::biped_direction_;
+    Display(5) << "Pos_x: " << controled_reference.position_x;
+    Display(6) << "att_z: " << controled_reference.attitude_z;
+    
 
     // /* grabbing velocity from encoders */
     // EncoderData encoder_data = sensor_->getEncoderData();
@@ -339,19 +325,56 @@ loop()
     /* compass and heading of BMX */
     // Display(4) << "cx: " << bmx160_imu_data.compass_x;
     // Display(5) << "cy: " << bmx160_imu_data.compass_y;
-    Display(6) << "att_z: " << bmx160_imu_data.attitude_z;
+    // Display(6) << "att_z: " << bmx160_imu_data.attitude_z;
 
-    static double previous_steps_x = 0; // Specifically the position_x from encoder
-    static double previous_position_x = 0;
-    static double previous_position_y = 0;
+    static float previous_steps_x = 0; // Specifically the position_x from encoder
+    static float previous_position_x = 0;
+    static float previous_position_y = 0;
 
-    double dist_x = temp_encoder_data.position_x - previous_steps_x;
-    double new_x = cos(bmx160_imu_data.attitude_z) * dist_x + previous_position_x;
-    double new_y = sin(bmx160_imu_data.attitude_z) * dist_x + previous_position_y;
+    float dist_x = temp_encoder_data.position_x - previous_steps_x;
+    float new_x = cos(bmx160_imu_data.attitude_z) * dist_x + previous_position_x;
+    float new_y = sin(bmx160_imu_data.attitude_z) * dist_x + previous_position_y;
 
     previous_steps_x = temp_encoder_data.position_x;
     previous_position_x = new_x; 
     previous_position_y = new_y;
+
+    int new_x_i = int(10 * new_x);
+    int new_y_i = int(10 * new_y);
+    if (new_x_i > 99)
+        new_x_i = 99;
+    if (new_x_i < -99)
+        new_x_i = -99;
+    if (new_y_i > 99)
+        new_y_i = 99;
+    if (new_y_i < -99)
+        new_y_i = -99;
+    Display(4) << "new_x: " << new_x_i;
+    Display(5) << "new_y: " << new_y_i;
+    
+    char s_x[5] = "Let\n";
+    char s_y[5] = "Ret\n";
+    std::string s1 = std::to_string(new_x_i);
+    std::string s2 = std::to_string(new_y_i);
+    if (new_x_i < 10) {
+        s_x[1] = '0';
+        s_x[2] = new_x_i + 48;
+    }
+    else {
+        for (int i = 0; i < 2; i++)
+            s_x[i+1] = s1[i];
+    }
+    if (new_y_i < 10) {
+        s_y[1] = '0';
+        s_y[2] = new_x_i + 48;
+    }
+    else {
+        for (int i = 0; i < 2; i++)
+            s_y[i+1] = s2[i];
+    }
+
+    SerialBT.write((uint8_t*)s_x, 4);
+    SerialBT.write((uint8_t*)s_y, 4);
 
     /* displaying MPU IMU data */
     biped::IMUData mpu_imu_data = sensor_->getIMUDataMPU6050();
@@ -385,4 +408,29 @@ loop()
     // biped::Serial(LogLevel::info) << "EncoderData: " << temp_encoder_data;
     // biped::Serial(LogLevel::info) << "Encoder_x: " << temp_encoder_data.position_x << " Vel_x: " << temp_encoder_data.velocity_x;
     delay(50);
+}
+
+void moveLeft(){
+    double new_head = controled_reference.attitude_z-degreesToRadians(att_z_step_val);
+    if (new_head < -M_PI)
+        new_head += 2 * M_PI;
+    controled_reference.attitude_z = new_head;
+    controller_->setControllerReference(controled_reference);
+}
+void moveRight(){
+    double new_head = controled_reference.attitude_z+degreesToRadians(att_z_step_val);
+    if (new_head > M_PI)
+        new_head = M_PI;
+    if (new_head < -M_PI)
+        new_head = -M_PI;
+    controled_reference.attitude_z = new_head;
+    controller_->setControllerReference(controled_reference);
+}
+void moveForward(){
+    controled_reference.position_x+=pos_x_step_val;
+    controller_->setControllerReference(controled_reference);
+}
+void moveBack(){
+    controled_reference.position_x-=pos_x_step_val;
+    controller_->setControllerReference(controled_reference);
 }

@@ -203,6 +203,9 @@ IMU::readMPU6050()
     mpu6050_data_.attitude_z = atan2(-bmx160_data_.compass_x, bmx160_data_.compass_y); // only bmx has magnetometer, so just copy yaw from bmx sensor
     mpu6050_data_.temperature = temperature.temperature;
 
+    integrated_angle_x += (mpu6050_data_.angular_velocity_z + previous_angle_x)/PeriodParameter::fast;
+    previous_angle_x = mpu6050_data_.angular_velocity_z;
+
     calculateAttitudeMPU6050();
 }
 

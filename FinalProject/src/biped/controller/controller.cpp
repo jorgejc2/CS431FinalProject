@@ -27,6 +27,7 @@ namespace biped
 Controller::Controller() : active_(false), open_loop_attitude_z_control_enabled_(false),
         output_position_x_(0), output_attitude_y_(0), output_attitude_z_(0)
 {
+
     /*
      *  Set Z attitude (yaw) open loop controller gain.
      *
@@ -328,6 +329,8 @@ Controller::control(const bool& fast_domain)
     IMUData MPU_IMU_data = sensor_->getIMUDataMPU6050();
     EncoderData encoder_data = sensor_->getEncoderData();
 
+
+
     /*
      *  Update the controller active status using the MPU6050 IMU
      *  data struct.
@@ -394,6 +397,7 @@ Controller::control(const bool& fast_domain)
          */
         // TODO LAB 7 YOUR CODE HERE.
         pid_controller_attitude_z_.setState(BMX_IMU_data.attitude_z);
+        // pid_controller_attitude_z_.setState(integrated_angle_x);
 
         /*
          *  Set the error derivative input (delta e) of the Z attitude (yaw)
@@ -401,7 +405,8 @@ Controller::control(const bool& fast_domain)
          *  data struct.
          */
         // TODO LAB 7 YOUR CODE HERE.
-        pid_controller_attitude_z_.setErrorDifferential(BMX_IMU_data.angular_velocity_z);
+        // pid_controller_attitude_z_.setErrorDifferential(BMX_IMU_data.angular_velocity_z);
+        pid_controller_attitude_z_.setErrorDifferential(MPU_IMU_data.angular_velocity_z);
 
         /*
          *  Execute the X position (forward/backward) PID controller

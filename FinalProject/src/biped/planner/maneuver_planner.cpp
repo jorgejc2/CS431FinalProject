@@ -33,7 +33,8 @@ ManeuverPlanner::ManeuverPlanner() : maneuver_counter_(1), maneuver_timer_(0), p
     std::shared_ptr<Maneuver> maneuver_1 = std::make_shared<Maneuver>();
     std::shared_ptr<Maneuver> maneuver_2 = std::make_shared<Maneuver>();
     std::shared_ptr<Maneuver> maneuver_3 = std::make_shared<Maneuver>();
-
+    std::shared_ptr<Maneuver> maneuver_4 = std::make_shared<Maneuver>();
+    std::shared_ptr<Maneuver> maneuver_5 = std::make_shared<Maneuver>();
     /*
      *  Set the start and current maneuvers.
      */
@@ -46,7 +47,7 @@ ManeuverPlanner::ManeuverPlanner() : maneuver_counter_(1), maneuver_timer_(0), p
      *      - Then, start maneuver 2.
      */
     maneuver_1->transition_type = Maneuver::TransitionType::duration;
-    maneuver_1->transition_value = 2;
+    maneuver_1->transition_value = 5;
     maneuver_1->type = Maneuver::Type::park;
     maneuver_1->next = maneuver_2;
 
@@ -55,8 +56,8 @@ ManeuverPlanner::ManeuverPlanner() : maneuver_counter_(1), maneuver_timer_(0), p
      *      - Drive forward until the X position goes above 1 meter.
      *      - Then, start maneuver 3.
      */
-    maneuver_2->transition_type = Maneuver::TransitionType::position_x_above;
-    maneuver_2->transition_value = 1;
+    maneuver_2->transition_type = Maneuver::TransitionType::range_middle_below;
+    maneuver_2->transition_value = 0.5;
     maneuver_2->type = Maneuver::Type::drive;
     maneuver_2->next = maneuver_3;
 
@@ -65,10 +66,25 @@ ManeuverPlanner::ManeuverPlanner() : maneuver_counter_(1), maneuver_timer_(0), p
      *      - Park for 2 seconds.
      *      - Then, plan completed.
      */
-    maneuver_3->transition_type = Maneuver::TransitionType::duration;
-    maneuver_3->transition_value = 2;
+    maneuver_3->transition_type = Maneuver::TransitionType::range_middle_above;
+    maneuver_3->transition_value = 0.5;
     maneuver_3->type = Maneuver::Type::park;
-    maneuver_3->next = nullptr;
+    maneuver_3->next = maneuver_5;
+
+    maneuver_5->transition_type = Maneuver::TransitionType::duration;
+    maneuver_5->transition_value = 5;
+    maneuver_5->type = Maneuver::Type::park;
+    maneuver_5->next = maneuver_4;
+
+    /*
+     *  Example plan maneuver 4 configuration:
+     *      - Park for 2 seconds.
+     *      - Then, plan completed.
+     */
+    maneuver_4->transition_type = Maneuver::TransitionType::position_x_above;
+    maneuver_4->transition_value = 3;
+    maneuver_4->type = Maneuver::Type::drive;
+    maneuver_4->next = nullptr;
 
     /*
      *  Using the example plan above, create your own maneuver-based plan.
@@ -477,7 +493,7 @@ ManeuverPlanner::generateControllerReference() const
             // TODO LAB 8 YOUR CODE HERE.
             EncoderData encoder_data = sensor_->getEncoderData();
             IMUData bmx160_imu_data = sensor_->getIMUDataBMX160();
-            controller_reference.position_x = encoder_data.position_x+100;
+            controller_reference.position_x = encoder_data.position_x+25;
             controller_reference.attitude_z = bmx160_imu_data.attitude_z;
             break;
         }

@@ -20,6 +20,7 @@
 #include <memory>
 #include <mutex>
 #include <freertos/task.h>
+#include "common/type.h"
 
 /*
  *  Forward declaration.
@@ -56,6 +57,12 @@ extern std::shared_ptr<ESP32TimerInterrupt> timer_; //!< ESP32 timer interrupt o
 extern int output_position_x;
 extern int output_attitude_y;
 extern volatile int push_button_b_pressed;
+
+extern float integrated_angle_x;
+extern float previous_angle_x;
+
+/* Controller Operated Refrence Point*/
+// extern std::shared_ptr<ControllerReference> controled_reference;
 
 extern std::mutex mutex_wire_;  //!< I2C driver object mutex.
 extern std::unique_lock<std::mutex> lock_wire_; //!< I2C driver object mutex lock.
