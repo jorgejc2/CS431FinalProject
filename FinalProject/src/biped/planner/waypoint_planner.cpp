@@ -62,7 +62,7 @@ WaypointPlanner::WaypointPlanner() : waypoint_counter_(1), waypoint_timer_(0), p
      *      - Then, start waypoint 3.
      */
     waypoint_2->controller_reference.attitude_z = degreesToRadians(0);
-    waypoint_2->controller_reference.position_x = 1;
+    waypoint_2->controller_reference.position_x = 0.5;
     waypoint_2->duration = 5;
     waypoint_2->next = waypoint_3;
 
@@ -72,7 +72,7 @@ WaypointPlanner::WaypointPlanner() : waypoint_counter_(1), waypoint_timer_(0), p
      *      - Then, start waypoint 4.
      */
     waypoint_3->controller_reference.attitude_z = degreesToRadians(-90);
-    waypoint_3->controller_reference.position_x = 2;
+    waypoint_3->controller_reference.position_x = 1;
     waypoint_3->duration = 5;
     waypoint_3->next = waypoint_4;
 
@@ -82,7 +82,7 @@ WaypointPlanner::WaypointPlanner() : waypoint_counter_(1), waypoint_timer_(0), p
      *      - Then, start waypoint 5.
      */
     waypoint_4->controller_reference.attitude_z = degreesToRadians(0);
-    waypoint_4->controller_reference.position_x = 1;
+    waypoint_4->controller_reference.position_x = 0.5;
     waypoint_4->duration = 5;
     waypoint_4->next = waypoint_5;
 
@@ -92,12 +92,12 @@ WaypointPlanner::WaypointPlanner() : waypoint_counter_(1), waypoint_timer_(0), p
      *      - Then, plan completed.
      */
     waypoint_5->controller_reference.attitude_z = degreesToRadians(90);
-    waypoint_5->controller_reference.position_x = 2;
+    waypoint_5->controller_reference.position_x = 1;
     waypoint_5->duration = 5;
     waypoint_5->next = waypoint_6;
 
     waypoint_6->controller_reference.attitude_z = degreesToRadians(0);
-    waypoint_6->controller_reference.position_x = 1;
+    waypoint_6->controller_reference.position_x = 0.5;
     waypoint_6->duration = 5;
     waypoint_6->next = waypoint_7;
 

@@ -328,19 +328,23 @@ loop()
     // Display(6) << "att_z: " << bmx160_imu_data.attitude_z;
 
     static float previous_steps_x = 0; // Specifically the position_x from encoder
+    static float previous_heading = integrated_angle_x;
     static float previous_position_x = 0;
     static float previous_position_y = 0;
 
     float dist_x = temp_encoder_data.position_x - previous_steps_x;
-    float new_x = cos(bmx160_imu_data.attitude_z) * dist_x + previous_position_x;
-    float new_y = sin(bmx160_imu_data.attitude_z) * dist_x + previous_position_y;
+    // float new_x = cos(bmx160_imu_data.attitude_z) * dist_x + previous_position_x;
+    // float new_y = sin(bmx160_imu_data.attitude_z) * dist_x + previous_position_y;
+    float new_x = cos(previous_heading) * dist_x + previous_position_x;
+    float new_y = sin(previous_heading) * dist_x + previous_position_y;
 
+    previous_heading = integrated_angle_x;
     previous_steps_x = temp_encoder_data.position_x;
     previous_position_x = new_x; 
     previous_position_y = new_y;
 
-    int new_x_i = int(10 * new_x);
-    int new_y_i = int(10 * new_y);
+    int new_x_i = int(15 * new_x);
+    int new_y_i = int(15 * new_y);
     if (new_x_i > 99)
         new_x_i = 99;
     if (new_x_i < -99)
@@ -349,32 +353,60 @@ loop()
         new_y_i = 99;
     if (new_y_i < -99)
         new_y_i = -99;
-    Display(4) << "new_x: " << new_x_i;
-    Display(5) << "new_y: " << new_y_i;
     
-    char s_x[5] = "Let\n";
-    char s_y[5] = "Ret\n";
-    std::string s1 = std::to_string(new_x_i);
-    std::string s2 = std::to_string(new_y_i);
-    if (new_x_i < 10) {
-        s_x[1] = '0';
-        s_x[2] = new_x_i + 48;
+    
+    char s_y[6] = "Rett\n";
+    char s_x[6] = "Lett\n";
+    std::string s1 = std::to_string(abs(new_x_i));
+    std::string s2 = std::to_string(abs(new_y_i));
+
+    /* string parsing */
+    if (new_x_i < 10 && new_x_i >= 0) {
+        s_x[1] = ' ';
+        s_x[2] = ' ';
+        s_x[3] = new_x_i + 48;
+    }
+    else if (new_x_i > -10 && new_x_i < 0) {
+        s_x[1] = ' ';
+        s_x[2] = '-';
+        s_x[3] = abs(new_x_i) + 48;
+    }
+    else if (new_x_i >= 10) {
+        s_x[1] = ' ';
+        for (int i = 0; i < 2; i++)
+            s_x[i+2] = s1[i];
     }
     else {
+        s_x[1] = '-';
         for (int i = 0; i < 2; i++)
-            s_x[i+1] = s1[i];
-    }
-    if (new_y_i < 10) {
-        s_y[1] = '0';
-        s_y[2] = new_x_i + 48;
-    }
-    else {
-        for (int i = 0; i < 2; i++)
-            s_y[i+1] = s2[i];
+            s_x[i+2] = s1[i];
     }
 
-    SerialBT.write((uint8_t*)s_x, 4);
-    SerialBT.write((uint8_t*)s_y, 4);
+    if (new_y_i < 10 && new_y_i >= 0) {
+        s_y[1] = ' ';
+        s_y[2] = ' ';
+        s_y[3] = new_y_i + 48;
+    }
+    else if (new_y_i > -10 && new_y_i < 0) {
+        s_y[1] = ' ';
+        s_y[2] = '-';
+        s_y[3] = abs(new_y_i) + 48;
+    }
+    else if (new_y_i >= 10) {
+        s_y[1] = ' ';
+        for (int i = 0; i < 2; i++)
+            s_y[i+2] = s2[i];
+    }
+    else {
+        s_y[1] = '-';
+        for (int i = 0; i < 2; i++)
+            s_y[i+2] = s2[i];
+    }
+
+    SerialBT.write((uint8_t*)s_x, 5);
+    SerialBT.write((uint8_t*)s_y, 5);
+    Display(4) << "new_x: " << s_x;//new_x_i;
+    Display(5) << "new_y: " << s_y;//new_y_i;
 
     /* displaying MPU IMU data */
     biped::IMUData mpu_imu_data = sensor_->getIMUDataMPU6050();

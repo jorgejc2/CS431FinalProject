@@ -371,6 +371,11 @@ Controller::control(const bool& fast_domain)
          */
         // TODO LAB 7 YOUR CODE HERE.
         output_attitude_y_ = pid_controller_attitude_y_.control();
+
+        /* if using integrated mpu instead */
+        pid_controller_attitude_z_.setState(integrated_angle_x);
+        output_attitude_z_ = pid_controller_attitude_z_.control();
+
     }
     else
     {
@@ -397,8 +402,7 @@ Controller::control(const bool& fast_domain)
          */
         // TODO LAB 7 YOUR CODE HERE.
         pid_controller_attitude_z_.setState(BMX_IMU_data.attitude_z);
-        // pid_controller_attitude_z_.setState(integrated_angle_x);
-
+        
         /*
          *  Set the error derivative input (delta e) of the Z attitude (yaw)
          *  PID controller to be the Z angular velocity in the MPU6050 IMU
@@ -425,8 +429,8 @@ Controller::control(const bool& fast_domain)
         // TODO LAB 7 YOUR CODE HERE.
         if (open_loop_attitude_z_control_enabled_)
             output_attitude_z_ = open_loop_controller_attitude_z_.control();
-        else
-            output_attitude_z_ = pid_controller_attitude_z_.control();
+        // else
+        //     output_attitude_z_ = pid_controller_attitude_z_.control();
     }
 
     /* DEBUG sanity check of values */

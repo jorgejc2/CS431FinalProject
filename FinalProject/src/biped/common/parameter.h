@@ -115,16 +115,21 @@ constexpr double attitude_y_active = 25; //!< Maximum Y attitude for controller 
 */
 /*
     attz
-    Kp = 35
-    Kd = 0
+    Kp = 40
+    Kd = 30
     Ki = 0
+*/
+/*
+    lab 9
+    60
+    10
 */
 constexpr double attitude_y_gain_proportional = -3000; //!< Y attitude PID controller proportional gain.
 constexpr double attitude_y_gain_differential = -40; //!< Y attitude PID controller differential gain.
 constexpr double attitude_y_gain_integral = 0;  //!< Y attitude PID controller integral gain.
 constexpr double attitude_y_gain_integral_max = 0; //!< Y attitude PID controller maximum integral error.
-constexpr double attitude_z_gain_proportional = 40; //!< Z attitude PID controller proportional gain.
-constexpr double attitude_z_gain_differential = 30; //!< Z attitude PID controller differential gain.
+constexpr double attitude_z_gain_proportional = 65; //!< Z attitude PID controller proportional gain.
+constexpr double attitude_z_gain_differential = 10; //!< Z attitude PID controller differential gain.
 constexpr double attitude_z_gain_integral = 0;  //!< Z attitude PID controller integral gain.
 constexpr double attitude_z_gain_integral_max = 0; //!< Z attitude PID controller maximum integral error.
 constexpr double attitude_z_gain_open_loop = 50;    //!< Z attitude open-loop controller gain.
